@@ -164,7 +164,7 @@ class Student(People):
     def speak(self):
         print(f"{self.name} 说: 我 {self.age} 岁了，我在读 {self.grade} 年级")
 
-
+# 练习打印日志
 def practice_logging():
     # 创建记录器
     logger = logging.getLogger("practice_logging")
@@ -191,7 +191,7 @@ def practice_logging():
     logger.info("打印一条日志")
     logger.warning("警告")
 
-
+# 练习异常处理
 class MyCustomException(Exception):
     def __init__(self, message="这是一个自定义的错误信息"):
         self.message = message
@@ -219,10 +219,26 @@ def practice_my_exception():
     except Exception as e:
         print(f"捕获到其他异常: {e}")
 
+# 练习不定参数
+def multi_params_function(name, *args, **kwargs):
+    if name:
+        print(f"名字是[{name}]")
+    if args:
+        print(f"args是[{args}]")
+    if kwargs:
+        print(f"kwargs是[{kwargs}]")
+
+def practice_multi_params_function():
+    set = {"apple", "banana", "cherry"}
+    tuple = ("1", "2", "3")
+    dict = {"age": 25, "gender": "male"}
+    multi_params_function("birdkyle", set)
+    multi_params_function("birdkyle", tuple)
+    multi_params_function("birdkyle", **dict)
 
 
 
 if __name__ == '__main__':
-    practice_my_exception()
+    practice_multi_params_function()
 
 
