@@ -192,7 +192,37 @@ def practice_logging():
     logger.warning("警告")
 
 
+class MyCustomException(Exception):
+    def __init__(self, message="这是一个自定义的错误信息"):
+        self.message = message
+        super().__init__(self.message)  # 调用父类的构造函数
+
+    def __str__(self):
+        """
+        当异常被打印或转换为字符串时返回的信息。
+        """
+        return f"MyCustomException: {self.message}"
+
+def example_exception_function(value):
+    if value < 0:
+        raise MyCustomException("输入值不能为负数！")
+    elif value == 0:
+        raise MyCustomException("输入值不能为零！请提供一个正数。")
+    else:
+        print(f"输入值为: {value}")
+
+def practice_my_exception():
+    try:
+        example_exception_function(-5)
+    except MyCustomException as e:
+        print(f"捕获到自定义异常: {e}")
+    except Exception as e:
+        print(f"捕获到其他异常: {e}")
+
+
+
+
 if __name__ == '__main__':
-    practice_logging()
+    practice_my_exception()
 
 
