@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import time
+from typing import Dict
 
 """
 个人练习 Python 语法
@@ -258,7 +259,7 @@ async def call_network(task_id):
     return f"任务{task_id}结果"
 
 
-async def parallel_call_network():
+async def parallel_call_network() -> Dict:
     num_list = ["a", "b", "c", "d", "e"]
 
     # 创建一个空的列表来存储 task 对象
