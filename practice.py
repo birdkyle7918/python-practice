@@ -113,7 +113,7 @@ def practice_yield_2():
 
 # 斐波那契数列
 def fibonacci_sequence(n):
-    a = 1
+    a = 0
     b = 1
     i = 0
     while True:
@@ -125,7 +125,7 @@ def fibonacci_sequence(n):
         a = temp
         i += 1
 def print_fibonacci_sequence():
-    for num in fibonacci_sequence(10):
+    for num in fibonacci_sequence(15):
         print(num)
 
 # 练习面向对象
@@ -222,14 +222,16 @@ def practice_multi_params_function():
     set = {"apple", "banana", "cherry"}
     tuple = ("1", "2", "3")
     dict = {"age": 25, "gender": "male"}
-    multi_params_function("birdkyle", set)
-    multi_params_function("birdkyle", tuple)
-    multi_params_function("birdkyle", **dict)
+    # multi_params_function("birdkyle", set)
+    # multi_params_function("birdkyle", tuple)
+    # multi_params_function("birdkyle", **dict)
+
+    multi_params_function("n", x=1, y=2, z="3")
 
 
 
 if __name__ == '__main__':
-    birdkyle_asyncio_demo.practice_async()
+    print_fibonacci_sequence()
     pass
 
 
