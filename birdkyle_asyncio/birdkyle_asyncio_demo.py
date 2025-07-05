@@ -16,7 +16,7 @@ async def call_network(task_id):
 
     # 模拟调用下游的网络延迟
     delay = random.uniform(1.0, 2.0)
-    await asyncio.wait_for(asyncio.sleep(delay), 1.8)
+    await asyncio.wait_for(asyncio.sleep(delay), 1.9)
 
     print(f"任务{task_id}完成，耗时{delay:.2f}")
     return f"任务{task_id}结果"
@@ -68,3 +68,6 @@ def practice_async():
                 print(f"任务{num}出现未知异常:{ex}")
         else:
             print(f"任务{num}的结果是：{task.result()}")
+
+if __name__ == "__main__":
+    practice_async()
