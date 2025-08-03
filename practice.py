@@ -1,6 +1,7 @@
 import logging
 from birdkyle_asyncio import birdkyle_asyncio_demo
 from birdkyle_exception.birdkyle_custom_exception import MyCustomException
+import numpy as np
 
 """
 个人练习 Python 语法
@@ -228,10 +229,61 @@ def practice_multi_params_function():
 
     multi_params_function("n", x=1, y=2, z="3")
 
+# 练习推导式
+def practice_derivation():
+    my_list1 = [x for x in range(10)]
+    print(my_list1)
+
+    my_list2 = [[x, x**2] for x in range(5) if x % 2 == 0]
+    print(my_list2)
+
+    my_set1 = {x for x in range(5) if x % 2 == 0}
+    print(my_set1)
+
+
+# 练习numpy处理一维度
+def practice_numpy_one_dimension():
+    one_dimension_list = [x for x in range(5)]
+    one_dimension_array = np.array(one_dimension_list)
+    print(f"这是一个一维的数组\n{one_dimension_array}")
+
+    bool_list = [True, False, True, False, True]
+    print(f"根据布尔值列表快速筛选数组\n{one_dimension_array[bool_list]}")
+
+    need_indices = [0,4]
+    print(f"根据索引列表快速筛选数组\n{one_dimension_array[need_indices]}")
+
+    even_numbers_indices = np.where(one_dimension_array % 2 == 0)[0]
+    print(f"筛选出偶数的索引\n{even_numbers_indices}")
+
+
+# 练习numpy处理二维
+def practice_numpy_two_dimension():
+    two_dimension_list = [[x, x, x] for x in range(5)]
+    two_dimension_array = np.array(two_dimension_list)
+    print(f"这是一个二维的数组\n{two_dimension_array}")
+
+    bool_list = [True, False, True, False, True]
+    print(f"根据布尔值列表快速筛选数组\n{two_dimension_array[bool_list]}")
+
+    need_indices = [0,4]
+    print(f"根据索引列表快速筛选数组\n{two_dimension_array[need_indices]}")
+
+    even_numbers_indices = np.where(two_dimension_array[:,0] % 2 == 0)[0]
+    print(f"筛选出偶数的索引\n{even_numbers_indices}")
+
+
+def practice_numpy_three_dimension():
+    grid_shape = (5, 5, 5)
+    three_dimension_grid = np.zeros(grid_shape, dtype=int)
+    print(f"这是一个全是0的三维格子\n{three_dimension_grid}")
+
+
+    pass
 
 
 if __name__ == '__main__':
-    print_fibonacci_sequence()
+    practice_numpy_three_dimension()
     pass
 
 
