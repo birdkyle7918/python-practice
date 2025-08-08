@@ -2,6 +2,10 @@ import logging
 from birdkyle_asyncio import birdkyle_asyncio_demo
 from birdkyle_exception.birdkyle_custom_exception import MyCustomException
 import numpy as np
+import numpy.typing as npt
+import typing
+from typing import Annotated, AnyStr, Any
+from numpy.typing import NDArray
 
 """
 个人练习 Python 语法
@@ -243,8 +247,9 @@ def practice_derivation():
 
 # 练习numpy处理一维度
 def practice_numpy_one_dimension():
-    one_dimension_list = [x for x in range(5)]
-    one_dimension_array = np.array(one_dimension_list)
+
+    one_dimension_list: list = [x for x in range(5)]
+    one_dimension_array: typing.Annotated[npt.NDArray[np.float64], "1, 3"] = np.array(one_dimension_list)
     print(f"这是一个一维的数组\n{one_dimension_array}")
 
     bool_list = [True, False, True, False, True]
@@ -272,18 +277,194 @@ def practice_numpy_two_dimension():
     even_numbers_indices = np.where(two_dimension_array[:,0] % 2 == 0)[0]
     print(f"筛选出偶数的索引\n{even_numbers_indices}")
 
-
+# 练习numpy处理三维
 def practice_numpy_three_dimension():
     grid_shape = (5, 5, 5)
-    three_dimension_grid = np.zeros(grid_shape, dtype=int)
+    three_dimension_grid = np.ones(grid_shape, dtype=int)
     print(f"这是一个全是0的三维格子\n{three_dimension_grid}")
 
+
+
+
+# 其他numpy的高级用法练习
+def other_numpy_practice(one_dimension_array: NDArray[np.int64], two_dimension_array:NDArray[np.int64]):
+    assert one_dimension_array.ndim == 1, "one_dimension_array 必须是一维"
+    assert two_dimension_array.ndim == 2, "two_dimension_array 必须是二维"
+
+    one_dimension_array = np.array([1,2,3,4,5])
+    two_dimension_array = np.array([[1,2,3],[4,5,6]])
+
+
+    # 1.广播机制
+    after_broadcast_array = one_dimension_array + [2]
+    print(f"广播后的\n{after_broadcast_array}")
+
+    # 2.普通的数组相加
+    origin_list = [1,2,3,4]
+    after_plus_list = origin_list + [5]
+    print(f"列表相加结果\n{after_plus_list}")
+
+    # 3.创建一个数组，填充指定数字
+    full_array = np.full((2,3), 5)
+    print(f"full_array\n{full_array}")
+
+    # 4.展平二维数组
+    print(f"展平二维数组\n{full_array.flatten()}")
+
+    # 6.转置二维数组
+    print(f"转置二维数组\n{full_array.T}")
+
+    # 沿着指定轴连接数组
+    a = np.array([[1, 2, 3], [4, 5, 6]])
+    b = np.array([[7, 8, 9], [10, 11, 12]])
+    print(f"垂直连接\n {np.concatenate((a, b), axis=0)}")  # 垂直连接
+    print(f"水平连接\n {np.concatenate((a, b), axis=1)}")  # 水平连接
+
+    # 垂直连接就是把两个数组竖着一摞堆起来（要求列数必须一样）
+    # 水平连接就是把两个数组横着焊接连起来（要求行数必须一样）
+    print(f"垂直连接\n {np.vstack((a, b))}")  # 垂直连接
+    print(f"水平连接\n {np.hstack((a, b))}")  # 水平连接
+
+
+    e_arr = np.full((2,2,2), 5)
+    e_arr[0][:][:] = 0
+    print(f"<e_arr>\n{e_arr}")
 
     pass
 
 
+# 二维astar算法
+import heapq
+from typing import TypeAlias
+
+# 为坐标创建一个类型别名，增强代码可读性
+Coord: TypeAlias = tuple[int, int]
+Grid: TypeAlias = list[list[int]]
+
+# 二维astar算法
+def astar_2d(grid: Grid, start: Coord, end: Coord) -> list[Coord]:
+    """
+    使用 A* 算法在二维网格中寻找最短路径。
+
+    :param grid: 一个二维列表，0 代表可通行，1 代表障碍物。
+    :param start: 起点坐标 (row, col)。
+    :param end: 终点坐标 (row, col)。
+    :return: 一个包含路径坐标的列表，若无路径则返回空列表。
+    """
+    rows: int = len(grid)
+    cols: int = len(grid[0])
+
+    # 定义启发函数：曼哈顿距离
+    def heuristic(coord_a: Coord, coord_b: Coord) -> int:
+        return abs(coord_a[0] - coord_b[0]) + abs(coord_a[1] - coord_b[1])
+
+    # 优先队列（小顶堆），存储 (f_score, node)
+    # f_score 是 g_score + h_score
+    open_set: list[tuple[float, Coord]] = [(float(heuristic(start, end)), start)]
+
+    # came_from 字典用于回溯路径，key 为节点，value 为其前驱节点
+    came_from: dict[Coord, Coord] = {}
+
+    # g_score 存储从起点到各节点的实际代价
+    # 使用字典并设置默认值为无穷大
+    g_score: dict[Coord, float] = {(r, c): float('inf') for r in range(rows) for c in range(cols)}
+    g_score[start] = 0.0
+
+    while open_set:
+
+        # 每次都是从优先队列中弹出 f_score 最小的节点
+        _, current_node = heapq.heappop(open_set)
+
+        # 如果到达终点，则重建路径并返回（这个好理解）
+        if current_node == end:
+            path: list[Coord] = []
+            while current_node in came_from:
+                path.append(current_node)
+                current_node = came_from[current_node]
+            path.append(start)
+            return path[::-1]  # 翻转列表得到从起点到终点的路径
+
+        # 循环，分别探索当前节点的邻居（上、下、左、右）
+        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            # 邻居节点的坐标
+            neighbor: Coord = (current_node[0] + dr, current_node[1] + dc)
+
+            # 如果邻居超出网格，或者邻居是障碍物，则continue，探索下一个邻居
+            if not (0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor[0]][neighbor[1]] == 0):
+                continue
+
+            # 计算经由当前节点到达邻居节点的 g_score
+            # 此处每一步的代价为 1.0
+            tentative_g_score: float = g_score[current_node] + 1.0
+
+            # 如果这条新路径不是更优，则不管
+            if tentative_g_score > g_score[neighbor]:
+                continue
+
+            # 更新邻居节点的来源节点
+            came_from[neighbor] = current_node
+
+            # 更新邻居节点的已知代价
+            g_score[neighbor] = tentative_g_score
+
+            # 更新邻居节点的总代价
+            f_score: float = tentative_g_score + heuristic(neighbor, end)
+
+            # 放入总代价队列
+            heapq.heappush(open_set, (f_score, neighbor))
+
+
+    # 如果 open_set 为空仍未找到终点，则说明没有路径
+    return []
+
+# 测试二维Astar算法
+def test_astar_2d():
+    # 定义一个 5x5 的网格
+    # 0 = 可走, 1 = 障碍
+    grid_map: Grid = [
+        [0, 0, 0, 1, 0],
+        [0, 1, 0, 1, 0],
+        [1, 0, 0, 1, 0],
+        [0, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0]
+    ]
+
+    start_point: Coord = (0, 0)
+    end_point: Coord = (4, 4)
+
+    print(f"网格地图 (1代表障碍):")
+    for row in grid_map:
+        print(row)
+    print(f"\n起点: {start_point}")
+    print(f"终点: {end_point}")
+
+    path: list[Coord] = astar_2d(grid_map, start_point, end_point)
+
+    if path:
+        print("\n找到路径:")
+        print(path)
+
+        # 可视化路径
+        # 注意：path_grid 的类型是 int 和 str 的联合
+        path_grid: list[list[int | str]] = [row[:] for row in grid_map]
+        for r, c in path:
+            if (r, c) == start_point:
+                path_grid[r][c] = 'S'  # Start
+            elif (r, c) == end_point:
+                path_grid[r][c] = 'E'  # End
+            else:
+                path_grid[r][c] = '*'  # Path
+
+        print("\n路径可视化 (S=起点, E=终点, *=路径):")
+        for visual_row in path_grid:
+            print(" ".join(map(str, visual_row)))
+
+    else:
+        print("\n未找到路径。")
+
+
 if __name__ == '__main__':
-    practice_numpy_three_dimension()
+    test_astar_2d()
     pass
 
 
