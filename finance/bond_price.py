@@ -35,5 +35,5 @@ def calculate_current_bond_price(old_interest_rate, new_interest_rate, remain_ti
 
 
 if __name__ == '__main__':
-    calculate_current_bond_price(0.0422, 0.0476, 9)
+    calculate_current_bond_price(0.0333, 0.02, 27.5)
     pass

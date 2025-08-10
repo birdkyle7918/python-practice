@@ -423,9 +423,9 @@ def test_astar_2d():
     # 0 = 可走, 1 = 障碍
     grid_map: Grid = [
         [0, 0, 0, 1, 0],
-        [0, 1, 0, 1, 0],
-        [1, 0, 0, 1, 0],
-        [0, 0, 1, 1, 0],
+        [1, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0],
         [0, 0, 0, 0, 0]
     ]
 
@@ -457,10 +457,13 @@ def test_astar_2d():
 
         print("\n路径可视化 (S=起点, E=终点, *=路径):")
         for visual_row in path_grid:
-            print(" ".join(map(str, visual_row)))
+            print(" ".join([str(item) for item in visual_row]))
 
     else:
         print("\n未找到路径。")
+
+
+
 
 
 if __name__ == '__main__':
