@@ -1,7 +1,47 @@
+import logging
+import os
+from datetime import datetime, date
+from logging.handlers import TimedRotatingFileHandler
+
 import mysql.connector.pooling
 from flask import Flask, request, jsonify
-from datetime import datetime, date, timedelta
 
+# ------------------- 日志 -----------------------------
+log_dir = 'logs'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+log_filename = os.path.join(log_dir, 'whore_app.log')
+logger = logging.getLogger('MyDailyLogger')
+logger.setLevel(logging.DEBUG)
+
+# 创建一个 Handler，用于按天轮换日志文件
+# filename: 日志文件的完整路径
+# when='D': 表示轮换周期为天 (Day)
+# interval=1: 表示每 1 天轮换一次
+# backupCount=7: 表示最多保留 7 个备份日志文件
+# encoding='utf-8': 设置文件编码，避免中文乱码
+handler = TimedRotatingFileHandler(
+    filename=log_filename,
+    when='D',
+    interval=1,
+    backupCount=7,
+    encoding='utf-8'
+)
+# 设置此 handler 写入文件的最低日志级别
+handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y%m%d'
+)
+# 将 formatter 应用到 handler
+handler.setFormatter(formatter)
+# 将创建的 handler 添加到 logger
+logger.addHandler(handler)
+
+
+# ------------------- 配置 -----------------------------
 app = Flask(__name__)
 
 # --- 数据库连接池配置 ---
@@ -15,6 +55,7 @@ DB_CONFIG = {
     "pool_size": 10               # 连接池大小，建议根据应用负载调整
 }
 
+# 数据库连接池
 db_pool = None
 
 def init_db_pool():
@@ -22,9 +63,9 @@ def init_db_pool():
     global db_pool
     try:
         db_pool = mysql.connector.pooling.MySQLConnectionPool(**DB_CONFIG)
-        print(f"数据库连接池 '{DB_CONFIG['pool_name']}' 初始化成功，大小为 {DB_CONFIG['pool_size']}")
+        logger.info('数据库连接池 %s 初始化成功，大小为 %s', DB_CONFIG['pool_name'], DB_CONFIG['pool_size'])
     except mysql.connector.Error as e:
-        print(f"数据库连接池初始化失败: {e}")
+        logger.error('数据库连接池初始化失败: %s', e)
         exit(1) # 如果连接池初始化失败，直接退出应用
 
 @app.before_request
@@ -42,12 +83,12 @@ def get_db_connection():
         conn = db_pool.get_connection()
         return conn
     except mysql.connector.Error as e:
-        print(f"从连接池获取连接失败: {e}")
+        logger.error('从连接池获取连接失败: %s', e)
         return None
 
-# --- API 接口 ---
+# ------------------- 接口 -----------------------------
 
-@app.route('/add_schedule', methods=['POST'])
+@app.route('/schedule', methods=['POST'])
 def add_schedule():
     """
     新增服务计划记录。
@@ -91,8 +132,7 @@ def add_schedule():
         return jsonify({"code": 200, "message": "服务计划添加成功！"}), 200
     except mysql.connector.Error as e:
         conn.rollback() # 出现错误时回滚事务
-        print(f"插入数据失败: {e}")
-        return jsonify({"code": 500, "message": f"插入数据失败: {e}"}), 500
+        logger.error('插入数据失败: %s', e)
     finally:
         if cursor:
             cursor.close()
@@ -131,7 +171,7 @@ def get_schedules(whore_username):
 
         return jsonify({"code": 200, "data": results, "message": "查询成功！"}), 200
     except mysql.connector.Error as e:
-        print(f"查询数据失败: {e}")
+        logger.error('查询数据失败: %s', e)
         return jsonify({"code": 500, "message": f"查询数据失败: {e}"}), 500
     finally:
         if cursor:
@@ -139,9 +179,16 @@ def get_schedules(whore_username):
         if conn:
             conn.close() # 使用完毕后将连接归还到连接池
 
+@app.route('/schedule', methods=['DELETE'])
+def delete_schedule():
+
+
+    pass
+
 if __name__ == '__main__':
     # Flask 应用启动时不会直接初始化连接池，而是通过 @app.before_request 确保在第一次请求前初始化
     # 您也可以选择在这里直接调用 init_db_pool()，但这可能会在没有请求时也创建连接池。
     # app.run(debug=True, host='0.0.0.0', port=8848) # 在开发环境中可以使用 debug=True
+
     print("请访问 http://127.0.0.1:8848/ 或 http://localhost:8848/ 来使用服务。")
     app.run(host='0.0.0.0', port=8848) # 生产环境建议关闭 debug 模式

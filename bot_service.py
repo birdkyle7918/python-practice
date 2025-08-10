@@ -1,6 +1,8 @@
-import os
-import requests
 import logging
+import os
+from logging.handlers import TimedRotatingFileHandler
+
+import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -11,12 +13,38 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 # 你的后端服务地址
 BACKEND_API_URL = "http://149.104.18.215:8848/get_schedules/{username}"
 
-# 设置日志记录，方便调试
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+log_dir = 'logs'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
+log_filename = os.path.join(log_dir, 'bot_service.log')
+logger = logging.getLogger('MyDailyLogger')
+logger.setLevel(logging.DEBUG)
+
+# 创建一个 Handler，用于按天轮换日志文件
+# filename: 日志文件的完整路径
+# when='D': 表示轮换周期为天 (Day)
+# interval=1: 表示每 1 天轮换一次
+# backupCount=7: 表示最多保留 7 个备份日志文件
+# encoding='utf-8': 设置文件编码，避免中文乱码
+handler = TimedRotatingFileHandler(
+    filename=log_filename,
+    when='D',
+    interval=1,
+    backupCount=7,
+    encoding='utf-8'
+)
+# 设置此 handler 写入文件的最低日志级别
+handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y%m%d'
+)
+# 将 formatter 应用到 handler
+handler.setFormatter(formatter)
+# 将创建的 handler 添加到 logger
+logger.addHandler(handler)
 
 
 """
@@ -32,7 +60,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
     # 检查用户是否设置了 Telegram 用户名
     if not username:
         await update.message.reply_text(
-            "抱歉，我无法获取你的日程，因为你没有设置 Telegram 用户名。\n"
+            "抱歉，我无法获取你的排课信息，因为你没有设置 Telegram 用户名。\n"
             "请在 Telegram 的“设置”中设置一个公开的用户名（Username）。"
         )
         logger.warning(f"用户 {user.full_name} (ID: {user.id}) 没有设置用户名。")
@@ -54,8 +82,8 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
             data = response.text
             # 如果返回的是 JSON，可以这样处理：
             # data = response.json()
-            # reply_message = f"为你找到的日程安排：\n{json.dumps(data, indent=2, ensure_ascii=False)}"
-            reply_message = f"为你找到 @{username} 的日程安排：\n\n{data}"
+            # reply_message = f"为你找到的排课安排：\n{json.dumps(data, indent=2, ensure_ascii=False)}"
+            reply_message = f"为你找到 @{username} 的排课安排：\n\n{data}"
             logger.info(f"成功从 API 获取到 @{username} 的数据。")
         else:
             # 如果服务器返回了错误码（如 404, 500等）
@@ -64,7 +92,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
     except requests.exceptions.RequestException as e:
         # 处理网络问题或其他请求错误
-        reply_message = "抱歉，无法连接到日程服务，请稍后再试。"
+        reply_message = "抱歉，无法连接到排课服务，请稍后再试。"
         logger.error(f"调用 API 时发生网络错误: {e}")
 
     # 3. 将结果发送回 Telegram
@@ -74,8 +102,9 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """当用户发送 /start 命令时，发送欢迎信息"""
     await update.message.reply_text(
-        "你好，老师！欢迎使用日程查询机器人。\n"
-        "请发送 /get_schedule 命令来查询你的排课记录。"
+        "你好，老师！欢迎使用排课机器人。\n"
+        "请发送 /get_schedule 命令来查询你的排课记录。\n"
+        "请发送 /add 命令来添加排课\n"
     )
 
 
