@@ -129,10 +129,11 @@ def add_schedule():
         """
         cursor.execute(query, (whore_username, client_username, scheduled_time))
         conn.commit()
-        return jsonify({"code": 200, "message": "服务计划添加成功！"}), 200
+        return jsonify({"code": 200, "message": "排课添加成功！"}), 200
     except mysql.connector.Error as e:
         conn.rollback() # 出现错误时回滚事务
         logger.error('插入数据失败: %s', e)
+        return jsonify({"code": 200, "message": "已有排课记录"}), 200
     finally:
         if cursor:
             cursor.close()
