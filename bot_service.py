@@ -177,6 +177,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
         logger.error(f"调用 API 时发生网络错误: {e}")
 
     # 3. 将结果发送回 Telegram
+    logger.info('输出消息为 %s', reply_message)
     await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML)
 
 
