@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 
 import requests
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # --- 配置 ---
@@ -49,6 +51,66 @@ logger.addHandler(handler)
 
 
 """
+优化输出格式
+"""
+def to_table_format(json_string: str) -> str | None:
+    data = json.loads(json_string)
+
+    if not (data['code'] == 200 and data['data']):
+        logger.error('处理json失败，json内容不是标准格式，json内容：%s', json_string)
+        return None
+
+    records = data['data']
+    if records is None or len(records) == 0:
+        return None
+
+    # 1. 定义表头
+    headers = {
+        "client_username": "客户",
+        "scheduled_time": "预约时间"
+    }
+
+    # 2. 计算每列所需的最大宽度
+    # 先用表头标题的长度初始化
+    col_widths = {k: len(v) for k, v in headers.items()}
+
+    # 遍历数据，更新最大宽度
+    for record in records:
+        for key, value in record.items():
+            if key in headers:  # 只处理我们需要展示的列
+                col_widths[key] = max(col_widths.get(key, 0), len(str(value)))
+
+    # 3. 构建表头字符串
+    header_line = ""
+    for key, header_name in headers.items():
+        # ljust 用于左对齐，并用空格填充到指定宽度
+        header_line += header_name.ljust(col_widths[key] + 2)  # +2 是为了增加一些间距
+
+    # 4. 构建分隔线
+    separator_line = ""
+    for key in headers:
+        separator_line += "-" * col_widths[key] + "  "
+
+    # 5. 构建数据行
+    data_lines = []
+    for record in records:
+        line = ""
+        for key in headers:
+            value = str(record.get(key, ''))  # 安全地获取值
+            line += value.ljust(col_widths[key] + 2)
+        data_lines.append(line)
+
+    # 6. 组合成最终消息
+    # 使用 <pre> 标签包裹所有内容，以保证是等宽字体并且保留所有空格和换行
+    final_message = f"<pre>"
+    final_message += f"{header_line}\n"
+    final_message += f"{separator_line}\n"
+    final_message += "\n".join(data_lines)
+    final_message += f"</pre>"
+
+    return final_message
+
+"""
 查询排课记录
 """
 async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -84,19 +146,23 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
             # 如果返回的是 JSON，可以这样处理：
             # data = response.json()
             # reply_message = f"为你找到的排课安排：\n{json.dumps(data, indent=2, ensure_ascii=False)}"
-            reply_message = f"您的排课如下：\n\n{data}"
+            table_content = to_table_format(data)
+            if table_content:
+                reply_message = to_table_format(data)
+            else:
+                reply_message = "没有找到排课信息"
         else:
             # 如果服务器返回了错误码（如 404, 500等）
-            reply_message = f"抱歉，查询失败。"
+            reply_message = "抱歉，查询失败。"
             logger.error(f"调用 API 失败，状态码: {response.status_code}, URL: {api_url}")
 
     except requests.exceptions.RequestException as e:
         # 处理网络问题或其他请求错误
-        reply_message = "抱歉，无法连接到排课服务，请稍后再试。"
+        reply_message = "抱歉，无法连接到服务器，请稍后再试。"
         logger.error(f"调用 API 时发生网络错误: {e}")
 
     # 3. 将结果发送回 Telegram
-    await update.message.reply_text(reply_message)
+    await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
