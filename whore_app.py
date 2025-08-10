@@ -167,9 +167,14 @@ def get_schedules(whore_username):
 
         # 对 datetime 对象进行序列化处理，转换为字符串
         for row in results:
+            # 客户名需要添加一个@符号
+            if 'client_username' in row and row['client_username']:
+                row['client_username'] = '@' + row['client_username']
+
             for key, value in row.items():
                 if isinstance(value, (datetime, date)):
-                    row[key] = value.isoformat() # ISO 格式字符串
+                    # %Y-%m-%d %H:%M:%S 会输出 '2025-08-10 00:00:00' 这样的格式
+                    row[key] = value.strftime('%Y-%m-%d %H:%M:%S')
 
         return jsonify({"code": 200, "data": results, "message": "查询成功！"}), 200
     except mysql.connector.Error as e:
