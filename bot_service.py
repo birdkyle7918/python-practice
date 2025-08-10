@@ -124,7 +124,7 @@ def main() -> None:
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
 
     # 启动机器人，开始轮询接收消息
-    logger.info("机器人已启动，正在等待命令...")
+    print("机器人已启动，正在等待命令...")
     application.run_polling()
 
 
