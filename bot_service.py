@@ -96,8 +96,23 @@ def to_table_format(json_string: str) -> str | None:
     for record in records:
         line = ""
         for key in headers:
-            value = str(record.get(key, ''))  # 安全地获取值
-            line += value.ljust(col_widths[key] + 2)
+            value = str(record.get(key, ''))
+            display_width = len(value)
+
+            # 【关键修改】如果值是 @ 开头的用户名，则生成链接
+            if key in ['client_username'] and value.startswith('@'):
+                # 移除@符号用于生成URL
+                username_url = value[1:]
+                # 最终要拼接到字符串里的是完整的HTML链接
+                final_value_str = f'<a href="https://t.me/{username_url}">{value}</a>'
+            else:
+                # 其他值保持原样
+                final_value_str = value
+
+            # 【关键修改】使用 final_value_str 进行拼接，但使用 display_width 来计算需要填充的空格数
+            padding_spaces = ' ' * (col_widths[key] - display_width + 2)
+            line += final_value_str + padding_spaces
+
         data_lines.append(line)
 
     # 6. 组合成最终消息
@@ -148,9 +163,9 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
             # reply_message = f"为你找到的排课安排：\n{json.dumps(data, indent=2, ensure_ascii=False)}"
             table_content = to_table_format(data)
             if table_content:
-                reply_message = to_table_format(data)
+                reply_message = "排课信息如下：\n\n" + table_content
             else:
-                reply_message = "没有找到排课信息"
+                reply_message = "没有找到排课信息\n\n/help"
         else:
             # 如果服务器返回了错误码（如 404, 500等）
             reply_message = "抱歉，查询失败。"
@@ -187,6 +202,7 @@ def main() -> None:
 
     # 注册命令处理器
     application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
 
     # 启动机器人，开始轮询接收消息
