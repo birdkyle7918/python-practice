@@ -102,11 +102,10 @@ def to_table_format(json_string: str) -> str | None:
 
     # 6. 组合成最终消息
     # 使用 <pre> 标签包裹所有内容，以保证是等宽字体并且保留所有空格和换行
-    final_message = f"<pre>"
+    final_message = ""
     final_message += f"{header_line}\n"
     final_message += f"{separator_line}\n"
     final_message += "\n".join(data_lines)
-    final_message += f"</pre>"
 
     return final_message
 

@@ -173,8 +173,7 @@ def get_schedules(whore_username):
 
             for key, value in row.items():
                 if isinstance(value, (datetime, date)):
-                    # %Y-%m-%d %H:%M:%S 会输出 '2025-08-10 00:00:00' 这样的格式
-                    row[key] = value.strftime('%Y-%m-%d %H:%M:%S')
+                    row[key] = value.strftime('%Y年%m月%d日 %H:%M:%S')
 
         return jsonify({"code": 200, "data": results, "message": "查询成功！"}), 200
     except mysql.connector.Error as e:
