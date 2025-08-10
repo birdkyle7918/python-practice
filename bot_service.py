@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
@@ -83,11 +84,10 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
             # 如果返回的是 JSON，可以这样处理：
             # data = response.json()
             # reply_message = f"为你找到的排课安排：\n{json.dumps(data, indent=2, ensure_ascii=False)}"
-            reply_message = f"为你找到 @{username} 的排课安排：\n\n{data}"
-            logger.info(f"成功从 API 获取到 @{username} 的数据。")
+            reply_message = f"您的排课如下：\n\n{data}"
         else:
             # 如果服务器返回了错误码（如 404, 500等）
-            reply_message = f"抱歉，查询失败。服务器返回状态码：{response.status_code}"
+            reply_message = f"抱歉，查询失败。"
             logger.error(f"调用 API 失败，状态码: {response.status_code}, URL: {api_url}")
 
     except requests.exceptions.RequestException as e:
@@ -102,7 +102,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """当用户发送 /start 命令时，发送欢迎信息"""
     await update.message.reply_text(
-        "你好，老师！欢迎使用排课机器人。\n"
+        "你好，老师！欢迎使用排课机器人。\n\n"
         "请发送 /get_schedule 命令来查询你的排课记录。\n"
         "请发送 /add 命令来添加排课\n"
     )
