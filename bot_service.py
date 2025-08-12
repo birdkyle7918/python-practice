@@ -206,13 +206,13 @@ async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 
 # 2. 接收到用户分享信息的处理函数
-async def user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """当用户通过按钮分享了一个用户后，处理收到的信息。"""
 
     # 使用海象运算符 (:=) 来进行赋值和检查，代码更健壮且能消除IDE警告
-    if (shared_info := update.message.user_shared) and shared_info.request_id == 1:
+    if (shared_info := update.message.users_shared) and shared_info.request_id == 1:
 
-        shared_user_id = shared_info.user_id
+        shared_user_id = shared_info.users
         logger.info(f"收到了来自用户 {update.effective_user.id} 的分享请求，分享的用户ID是: {shared_user_id}")
 
         try:
@@ -250,7 +250,7 @@ def main() -> None:
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
     application.add_handler(CommandHandler("select_user", select_user))
-    application.add_handler(MessageHandler(filters.StatusUpdate.USERS_SHARED, user_shared))
+    application.add_handler(MessageHandler(filters.StatusUpdate.USERS_SHARED, users_shared))
 
 
 
