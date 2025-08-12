@@ -223,9 +223,9 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
             # 构造回复消息
             if username:
-                response_text = f"✅ 选择成功！\n\n你选择的用户是: @{username}\n他们的 User ID 是: `{shared_user_id}`"
+                response_text = f"✅ 选择成功！\n\n你选择的用户是: @{username}\n"
             else:
-                response_text = f"✅ 选择成功！\n\n你选择的用户是: {first_name}\n（这位用户没有设置公开的 username）\n他们的 User ID 是: `{shared_user_id}`"
+                response_text = f"✅ 选择成功！\n\n你选择的用户是: {first_name}\n"
 
             # 以Markdown格式回复用户
             await update.message.reply_text(response_text, parse_mode='MarkdownV2')
