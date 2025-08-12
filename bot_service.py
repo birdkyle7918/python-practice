@@ -5,8 +5,8 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 
 import requests
-from telegram import (Update)
-from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler, filters)
+from telegram import Update
+from telegram.ext import ContextTypes
 
 # --- 配置 ---
 # 从环境变量中读取你的 Telegram Bot Token
@@ -174,8 +174,65 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
     logger.info('输出消息为 %s', reply_message)
     await update.message.reply_text(reply_message)
 
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+    # --- 这里是关键的修正 ---
+    # 使用 KeyboardButtonRequestUser 类来创建请求对象，而不是直接使用字典
+    request_user_object = KeyboardButtonRequestUsers(
+        request_id=1,  # 请求的唯一ID
+        user_is_bot=False  # 过滤条件：我们不希望用户选择一个机器人
+    )
+
+    # 将创建好的对象传递给 KeyboardButton
+    user_request_button = KeyboardButton(
+        text="点我选择一个用户",
+        request_users=request_user_object
+    )
+
+    # 将按钮放入键盘布局中
+    reply_markup = ReplyKeyboardMarkup(
+        [[user_request_button]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
+    await update.message.reply_text(
+        "你好！请点击下方的按钮，从你的联系人或通过搜索，选择一个你想发送给我的用户：",
+        reply_markup=reply_markup
+    )
 
 
+# 2. 接收到用户分享信息的处理函数
+async def user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """当用户通过按钮分享了一个用户后，处理收到的信息。"""
+
+    # 使用海象运算符 (:=) 来进行赋值和检查，代码更健壮且能消除IDE警告
+    if (shared_info := update.message.user_shared) and shared_info.request_id == 1:
+
+        shared_user_id = shared_info.user_id
+        logger.info(f"收到了来自用户 {update.effective_user.id} 的分享请求，分享的用户ID是: {shared_user_id}")
+
+        try:
+            # 使用 get_chat 方法获取被分享用户的详细信息
+            chat = await context.bot.get_chat(shared_user_id)
+            username = chat.username
+            first_name = chat.first_name
+
+            # 构造回复消息
+            if username:
+                response_text = f"✅ 选择成功！\n\n你选择的用户是: @{username}\n他们的 User ID 是: `{shared_user_id}`"
+            else:
+                response_text = f"✅ 选择成功！\n\n你选择的用户是: {first_name}\n（这位用户没有设置公开的 username）\n他们的 User ID 是: `{shared_user_id}`"
+
+            # 以Markdown格式回复用户
+            await update.message.reply_text(response_text, parse_mode='MarkdownV2')
+
+        except Exception as e:
+            logger.error(f"获取 User ID {shared_user_id} 的信息时出错: {e}")
+            await update.message.reply_text(f"抱歉，在获取用户信息时遇到了一个内部错误。")
 
 # --- 主程序入口 ---
 
@@ -192,6 +249,9 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
+    application.add_handler(CommandHandler("select_user", select_user))
+    application.add_handler(MessageHandler(filters.StatusUpdate.USER_SHARED, user_shared))
+
 
 
     # 启动机器人，开始轮询接收消息
