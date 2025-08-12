@@ -176,7 +176,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
+from telegram import Bot
 async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # --- 这里是关键的修正 ---
@@ -217,7 +217,8 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         try:
             # 使用 get_chat 方法获取被分享用户的详细信息
-            chat = await context.bot.get_chat(shared_user_id)
+            bot = Bot(TELEGRAM_BOT_TOKEN)
+            chat = await bot.get_chat(chat_id=shared_user_id)
             username = chat.username
             first_name = chat.first_name
 
