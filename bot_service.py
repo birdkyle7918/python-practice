@@ -250,7 +250,7 @@ def main() -> None:
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
     application.add_handler(CommandHandler("select_user", select_user))
-    application.add_handler(MessageHandler(filters.StatusUpdate.USER_SHARED, user_shared))
+    application.add_handler(MessageHandler(filters.StatusUpdate.USERS_SHARED, user_shared))
 
 
 
