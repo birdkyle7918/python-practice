@@ -216,17 +216,16 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         logger.info(f"收到了来自用户 {update.effective_user.id} 的分享请求，分享的用户ID是: {shared_user_id}")
 
         try:
-            # 使用 get_chat 方法获取被分享用户的详细信息
-            bot = Bot(TELEGRAM_BOT_TOKEN)
-            chat = await bot.get_chat(chat_id=shared_user_id)
-            username = chat.username
-            first_name = chat.first_name
+            username = shared_info.users[0].username
+            first_name = shared_info.users[0].first_name
 
             # 构造回复消息
             if username:
                 response_text = f"✅ 选择成功！\n\n你选择的用户是: @{username}\n"
-            else:
+            elif first_name:
                 response_text = f"✅ 选择成功！\n\n你选择的用户是: {first_name}\n"
+            else:
+                response_text = f"没有username，也没有first_name\n"
 
             # 以Markdown格式回复用户
             await update.message.reply_text(response_text, parse_mode='MarkdownV2')
