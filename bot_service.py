@@ -212,7 +212,7 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # 使用海象运算符 (:=) 来进行赋值和检查，代码更健壮且能消除IDE警告
     if (shared_info := update.message.users_shared) and shared_info.request_id == 1:
 
-        shared_user_id = shared_info.users
+        shared_user_id = shared_info.users[0].user_id
         logger.info(f"收到了来自用户 {update.effective_user.id} 的分享请求，分享的用户ID是: {shared_user_id}")
 
         try:
