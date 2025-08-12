@@ -176,14 +176,17 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from telegram import Bot
+
+
 async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # --- 这里是关键的修正 ---
     # 使用 KeyboardButtonRequestUser 类来创建请求对象，而不是直接使用字典
     request_user_object = KeyboardButtonRequestUsers(
         request_id=1,  # 请求的唯一ID
-        user_is_bot=False  # 过滤条件：我们不希望用户选择一个机器人
+        user_is_bot=False,  # 过滤条件：我们不希望用户选择一个机器人
+        request_name=True,
+        request_username=True
     )
 
     # 将创建好的对象传递给 KeyboardButton
@@ -216,13 +219,9 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         try:
             username = shared_info.users[0].username
-            first_name = shared_info.users[0].first_name
-
             # 构造回复消息
             if username:
                 response_text = f"✅ 选择成功！\n\n你选择的用户是: @{username}\n"
-            elif first_name:
-                response_text = f"✅ 选择成功！\n\n你选择的用户是: {first_name}\n"
             else:
                 response_text = f"没有username，也没有first_name\n"
 
