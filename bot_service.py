@@ -5,9 +5,8 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 
 import requests
-from telegram import Update
-from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import (Update)
+from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler, filters)
 
 # --- 配置 ---
 # 从环境变量中读取你的 Telegram Bot Token
@@ -49,6 +48,17 @@ handler.setFormatter(formatter)
 # 将创建的 handler 添加到 logger
 logger.addHandler(handler)
 
+
+"""
+开始
+"""
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """当用户发送 /start 命令时，发送欢迎信息"""
+    await update.message.reply_text(
+        "你好，老师！欢迎使用排课机器人。\n\n"
+        "请发送 /get_schedule 命令来查询你的排课记录。\n"
+        "请发送 /add 命令来添加排课\n"
+    )
 
 """
 优化输出格式
@@ -165,13 +175,6 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.message.reply_text(reply_message)
 
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """当用户发送 /start 命令时，发送欢迎信息"""
-    await update.message.reply_text(
-        "你好，老师！欢迎使用排课机器人。\n\n"
-        "请发送 /get_schedule 命令来查询你的排课记录。\n"
-        "请发送 /add 命令来添加排课\n"
-    )
 
 
 # --- 主程序入口 ---
@@ -189,6 +192,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
+
 
     # 启动机器人，开始轮询接收消息
     print("机器人已启动，正在等待命令...")
