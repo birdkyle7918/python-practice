@@ -220,7 +220,7 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         username = shared_info.users[0].username
         # 选择的用户没有用户名，直接结束
         if not username:
-            await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法进行排课。")
+            await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法进行排课。\n /select_user")
             return ConversationHandler.END
 
         # 有用户名，则放入上下文
@@ -258,7 +258,7 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return ConversationHandler.END
 
     logger.info(f"{update.effective_user.id} 为用户 @{selected_username} 安排时间：{user_input_time_str}")
-    await update.message.reply_text(f"正在为 `@{selected_username}` 排课...", parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(f"正在为 `@{selected_username}` 排课")
 
     # --- 调用后端API ---
     payload = {
@@ -285,7 +285,7 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         reply_message = "❌ 机器人开小差啦～"
         logger.error(f"调用新增排课API时发生网络错误: {e}")
 
-    await update.message.reply_text(reply_message, parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(reply_message)
 
     # 清理 user_data 并结束对话
     context.user_data.clear()
