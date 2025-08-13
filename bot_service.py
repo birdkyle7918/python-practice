@@ -273,7 +273,7 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if response.status_code == 200 or response.status_code == 201: # 200 OK or 201 Created
             api_data = response.json()
             if api_data.get('code') == 200:
-                reply_message = f"✅ 成功！已为 `@{selected_username}` 安排时间：`{user_input_time}`。"
+                reply_message = f"✅ 成功！已为 @{selected_username} 安排时间：`{user_input_time_str}`。"
             else:
                 reply_message = f"机器人开小差啦～"
         else:
@@ -322,7 +322,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         # 如果用户在对话中发送了不相关的命令，可以提醒他
-        conversation_timeout=300  # 设置一个5分钟的超时
+        conversation_timeout=200
     )
 
     # 注册常规命令
