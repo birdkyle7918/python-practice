@@ -229,9 +229,8 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         # ✅ 核心步骤：要求用户输入时间
         await update.message.reply_text(
-            f"✅ 选择成功！你选择了用户: `@{selected_user.username}`\n\n"
-            f"请输入你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `晚上10点30`）：",
-            parse_mode=ParseMode.MARKDOWN_V2
+            f"✅ 选择成功！你选择了用户: @{selected_user.username}\n\n"
+            f"请输入你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `晚上10点30`）："
         )
         # ✅ 核心步骤：告诉 ConversationHandler 进入下一个状态
         return AWAITING_TIME
@@ -258,7 +257,7 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return ConversationHandler.END
 
     logger.info(f"{update.effective_user.id} 为用户 @{selected_username} 安排时间：{user_input_time_str}")
-    await update.message.reply_text(f"正在为 `@{selected_username}` 排课")
+    await update.message.reply_text(f"正在为 @{selected_username} 排课")
 
     # --- 调用后端API ---
     payload = {
@@ -294,7 +293,7 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 """用于取消对话"""
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """用户主动取消对话。"""
-    await update.message.reply_text("操作已取消。")
+    await update.message.reply_text("操作已取消")
     # 清理可能存在的临时数据
     context.user_data.clear()
     return ConversationHandler.END
