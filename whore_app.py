@@ -109,7 +109,7 @@ def add_schedule():
     scheduled_time_str = data.get('scheduled_time')
 
     if not all([whore_username, client_username, scheduled_time_str]):
-        return jsonify({"code": 400, "message": "缺少必要的参数: whore_username, client_username, scheduled_time"}), 400
+        return jsonify({"code": 400, "message": "缺少必要的参数"}), 400
 
     try:
         # 将字符串时间转换为 datetime 对象
@@ -146,6 +146,9 @@ def get_schedules(whore_username):
     """
     查询指定 whore_username 下所有 scheduled_time 大于今日的数据。
     """
+    if not whore_username:
+        return jsonify({"code": 400, "message": "请求无效"}), 400
+
     conn = get_db_connection()
     if not conn:
         return jsonify({"code": 500, "message": "无法连接到数据库"}), 500
@@ -191,7 +194,11 @@ def delete_schedule():
     data = request.get_json()
     if not data:
         return jsonify({"code": 400, "message": "请求体为空或不是有效的 JSON"}), 400
+
+    whore_username = data.get('whore_username')
     client_username = data.get('client_username')
+    if not whore_username or not client_username:
+        return jsonify({"code": 400, "message": "请求体为空或不是有效的 JSON"}), 400
 
     conn = get_db_connection()
     if not conn:
@@ -205,12 +212,12 @@ def delete_schedule():
         delete_sql = """
         DELETE FROM
         whore_service_schedule
-        WHERE client_username = %s AND scheduled_time > %s
+        WHERE whore_username = %s AND client_username = %s AND scheduled_time > %s
         """
-        cursor.execute(delete_sql, (client_username, today))
+        cursor.execute(delete_sql, (whore_username, client_username, today))
         conn.commit()
         rows_deleted = cursor.rowcount
-        return jsonify({"code": 200, "message": f"成功删除 {rows_deleted} 条数据"}), 200
+        return jsonify({"code": 200, "message": f"成功删除 {rows_deleted} 条数据", "row_deleted": rows_deleted}), 200
 
     except mysql.connector.Error as e:
         logger.error('删除数据失败: %s', e)
