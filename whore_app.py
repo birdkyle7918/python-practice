@@ -151,7 +151,7 @@ def get_schedules(whore_username):
         return jsonify({"code": 500, "message": "无法连接到数据库"}), 500
 
     cursor = None
-    results = []
+
     try:
         cursor = conn.cursor(dictionary=True) # 以字典形式返回结果
         today = date.today() # 获取今天的日期
@@ -188,13 +188,44 @@ def get_schedules(whore_username):
 @app.route('/schedule', methods=['DELETE'])
 def delete_schedule():
 
+    data = request.get_json()
+    if not data:
+        return jsonify({"code": 400, "message": "请求体为空或不是有效的 JSON"}), 400
+    client_username = data.get('client_username')
 
-    pass
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"code": 500, "message": "无法连接到数据库"}), 500
+
+    cursor = None
+    try:
+        cursor = conn.cursor()  # 以字典形式返回结果
+        today = date.today()  # 获取今天的日期
+
+        delete_sql = """
+        DELETE FROM
+        whore_service_schedule
+        WHERE client_username = %s AND scheduled_time > %s
+        """
+        cursor.execute(delete_sql, (client_username, today))
+        conn.commit()
+        rows_deleted = cursor.rowcount
+        return jsonify({"code": 200, "message": f"成功删除 {rows_deleted} 条数据"}), 200
+
+    except mysql.connector.Error as e:
+        logger.error('删除数据失败: %s', e)
+        return jsonify({"code": 500, "message": f"删除数据失败: {e}"}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close() # 使用完毕后将连接归还到连接池
+
 
 if __name__ == '__main__':
     # Flask 应用启动时不会直接初始化连接池，而是通过 @app.before_request 确保在第一次请求前初始化
     # 您也可以选择在这里直接调用 init_db_pool()，但这可能会在没有请求时也创建连接池。
     # app.run(debug=True, host='0.0.0.0', port=8848) # 在开发环境中可以使用 debug=True
 
-    print("请访问 http://127.0.0.1:8848/ 或 http://localhost:8848/ 来使用服务。")
     app.run(host='0.0.0.0', port=8848) # 生产环境建议关闭 debug 模式
+    print("排课服务已启动")

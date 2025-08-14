@@ -1,11 +1,17 @@
 import logging
-from birdkyle_asyncio import birdkyle_asyncio_demo
-from birdkyle_exception.birdkyle_custom_exception import MyCustomException
+import typing
+
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-import typing
-from typing import Annotated, AnyStr, Any
+from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
+
+from birdkyle_exception.birdkyle_custom_exception import MyCustomException
+from typing import Annotated # Python 3.9+
+from collections import defaultdict
+from scipy.ndimage import binary_dilation # <--- 导入膨胀函数
+
 
 """
 个人练习 Python 语法
@@ -337,137 +343,188 @@ def other_numpy_practice(one_dimension_array: NDArray[np.int64], two_dimension_a
 import heapq
 from typing import TypeAlias
 
-# 为坐标创建一个类型别名，增强代码可读性
+# 类型别名
+# 点坐标
 Coord: TypeAlias = tuple[int, int]
-Grid: TypeAlias = list[list[int]]
+# 路径
+Path = Annotated[npt.NDArray[np.int64], ("N", 2)]
+# 网格
+Grid = Annotated[npt.NDArray[np.int64], ("N", "M")]
+
+MOVE_COST_STRAIGHT: float = 1.0
+MOVE_COST_DIAGONAL: float = np.sqrt(2)
 
 # 二维astar算法
-def astar_2d(grid: Grid, start: Coord, end: Coord) -> list[Coord]:
+def get_path_astar_2d(grid: Grid, start: Coord, end: Coord) -> Path:
     """
-    使用 A* 算法在二维网格中寻找最短路径。
-
-    :param grid: 一个二维列表，0 代表可通行，1 代表障碍物。
-    :param start: 起点坐标 (row, col)。
-    :param end: 终点坐标 (row, col)。
-    :return: 一个包含路径坐标的列表，若无路径则返回空列表。
+    一个优化版本的二维A*寻路算法。
     """
-    rows: int = len(grid)
-    cols: int = len(grid[0])
+    rows, cols = grid.shape
 
-    # 定义启发函数：曼哈顿距离
-    def heuristic(coord_a: Coord, coord_b: Coord) -> int:
-        return abs(coord_a[0] - coord_b[0]) + abs(coord_a[1] - coord_b[1])
+    # 优化点 1: 修正启发函数为八角距离 (Octile Distance)
+    def heuristic(coord_a: Coord, coord_b: Coord) -> float:
+        dx = abs(coord_a[0] - coord_b[0])
+        dy = abs(coord_a[1] - coord_b[1])
+        # 这是八角距离的精确计算公式
+        return MOVE_COST_STRAIGHT * (dx + dy) + (MOVE_COST_DIAGONAL - 2 * MOVE_COST_STRAIGHT) * min(dx, dy)
 
-    # 优先队列（小顶堆），存储 (f_score, node)
-    # f_score 是 g_score + h_score
-    open_set: list[tuple[float, Coord]] = [(float(heuristic(start, end)), start)]
+    # 定义8个移动方向和对应的成本
+    neighbors_moves = [
+        ((0, 1), MOVE_COST_STRAIGHT), ((0, -1), MOVE_COST_STRAIGHT),
+        ((1, 0), MOVE_COST_STRAIGHT), ((-1, 0), MOVE_COST_STRAIGHT),
+        ((1, 1), MOVE_COST_DIAGONAL), ((-1, 1), MOVE_COST_DIAGONAL),
+        ((-1, -1), MOVE_COST_DIAGONAL), ((1, -1), MOVE_COST_DIAGONAL)
+    ]
 
-    # came_from 字典用于回溯路径，key 为节点，value 为其前驱节点
+    # 优先队列（小顶堆）
+    open_set: list[tuple[float, Coord]] = [(heuristic(start, end), start)]
+
+    # 优化点 2: 引入 closed_set，使用 set 以获得 O(1) 的查找效率
+    closed_set: set[Coord] = set()
+
+    # came_from 用于回溯路径
     came_from: dict[Coord, Coord] = {}
 
-    # g_score 存储从起点到各节点的实际代价
-    # 使用字典并设置默认值为无穷大
-    g_score: dict[Coord, float] = {(r, c): float('inf') for r in range(rows) for c in range(cols)}
+    # 优化点 3: 使用 defaultdict 避免低效的初始化
+    g_score: dict[Coord, float] = defaultdict(lambda: float('inf'))
     g_score[start] = 0.0
 
     while open_set:
-
-        # 每次都是从优先队列中弹出 f_score 最小的节点
         _, current_node = heapq.heappop(open_set)
 
-        # 如果到达终点，则重建路径并返回（这个好理解）
+        # 如果节点已处理过，则跳过（这是对同一节点在open_set中存在多个副本的防御）
+        if current_node in closed_set:
+            continue
+
+        # 将当前节点加入关闭列表，表示它已被访问和处理
+        closed_set.add(current_node)
+
         if current_node == end:
             path: list[Coord] = []
-            while current_node in came_from:
-                path.append(current_node)
-                current_node = came_from[current_node]
+            # 注意：这里的回溯逻辑需要确保终点能被加入路径
+            temp = current_node
+            while temp in came_from:
+                path.append(temp)
+                temp = came_from[temp]
             path.append(start)
-            return path[::-1]  # 翻转列表得到从起点到终点的路径
+            return np.array(path[::-1])
 
-        # 循环，分别探索当前节点的邻居（上、下、左、右）
-        for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            # 邻居节点的坐标
+        # 优化点 1: 邻居循环使用预定义的移动和代价
+        for (dr, dc), move_cost in neighbors_moves:
             neighbor: Coord = (current_node[0] + dr, current_node[1] + dc)
 
-            # 如果邻居超出网格，或者邻居是障碍物，则continue，探索下一个邻居
+            # 检查邻居是否有效（界内、非障碍物）
             if not (0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor[0]][neighbor[1]] == 0):
                 continue
 
-            # 计算经由当前节点到达邻居节点的 g_score
-            # 此处每一步的代价为 1.0
-            tentative_g_score: float = g_score[current_node] + 1.0
-
-            # 如果这条新路径不是更优，则不管
-            if tentative_g_score > g_score[neighbor]:
+            # 检查邻居是否已在关闭列表中
+            if neighbor in closed_set:
                 continue
 
-            # 更新邻居节点的来源节点
-            came_from[neighbor] = current_node
+            tentative_g_score = g_score[current_node] + move_cost
 
-            # 更新邻居节点的已知代价
-            g_score[neighbor] = tentative_g_score
+            if tentative_g_score < g_score[neighbor]:
+                came_from[neighbor] = current_node
+                g_score[neighbor] = tentative_g_score
+                f_score = tentative_g_score + heuristic(neighbor, end)
 
-            # 更新邻居节点的总代价
-            f_score: float = tentative_g_score + heuristic(neighbor, end)
+                # 这里可以进一步优化：仅当邻居不在 open_set 中时才添加。
+                # 但简单的重复添加，依赖于前面的 closed_set 检查来处理，通常也足够快。
+                heapq.heappush(open_set, (f_score, neighbor))
 
-            # 放入总代价队列
-            heapq.heappush(open_set, (f_score, neighbor))
-
-
-    # 如果 open_set 为空仍未找到终点，则说明没有路径
-    return []
+    return np.array([])  # 未找到路径
 
 # 测试二维Astar算法
-def test_astar_2d():
-    # 定义一个 5x5 的网格
-    # 0 = 可走, 1 = 障碍
-    grid_map: Grid = [
-        [0, 0, 0, 1, 0],
-        [1, 1, 0, 1, 0],
-        [0, 0, 0, 1, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0]
-    ]
+def get_astar_2d_result_grid(grid_map: Grid, start: Coord, end: Coord) -> Grid:
 
-    start_point: Coord = (0, 0)
-    end_point: Coord = (4, 4)
+    path: Path = get_path_astar_2d(grid_map, start, end)
 
-    print(f"网格地图 (1代表障碍):")
-    for row in grid_map:
-        print(row)
-    print(f"\n起点: {start_point}")
-    print(f"终点: {end_point}")
+    # 赋初值
+    path_grid: Grid = grid_map
 
-    path: list[Coord] = astar_2d(grid_map, start_point, end_point)
-
-    if path:
-        print("\n找到路径:")
-        print(path)
-
-        # 可视化路径
-        # 注意：path_grid 的类型是 int 和 str 的联合
-        path_grid: list[list[int | str]] = [row[:] for row in grid_map]
+    if path is not None and len(path) > 0:
+        # 把路径在网格上标出来
         for r, c in path:
-            if (r, c) == start_point:
-                path_grid[r][c] = 'S'  # Start
-            elif (r, c) == end_point:
-                path_grid[r][c] = 'E'  # End
-            else:
-                path_grid[r][c] = '*'  # Path
-
-        print("\n路径可视化 (S=起点, E=终点, *=路径):")
-        for visual_row in path_grid:
-            print(" ".join([str(item) for item in visual_row]))
-
+            path_grid[r][c] = 2  # Path
     else:
         print("\n未找到路径。")
 
+    return np.array(path_grid)
 
+
+def show_grid_high_clarity_overview():
+    # 1. 加载.npz文件 (您的原始逻辑)
+    # 为了让代码可以运行，我们先创建一个模拟文件
+    try:
+        data = np.load('obstacles11.npz')
+        print("已成功加载文件。")
+    except FileNotFoundError:
+        print("未找到，正在创建模拟数据文件...")
+        grid_size = 10000
+        mock_grid = np.zeros((grid_size, grid_size), dtype=int)
+        num_obstacles = int(grid_size * grid_size * 0.6)
+        obstacle_rows = np.random.randint(0, grid_size, num_obstacles)
+        obstacle_cols = np.random.randint(0, grid_size, num_obstacles)
+        mock_grid[obstacle_rows, obstacle_cols] = 1  # 1 代表障碍物
+        np.savez_compressed('obstacles.npz', grid=mock_grid)
+        data = np.load('obstacles.npz')
+        print("模拟数据文件已创建并加载。")
+
+    # 2. 提取网格并运行A*算法
+    origin_grid = data['grid']
+    print('正在执行Astar算法...')
+    path_grid = get_astar_2d_result_grid(origin_grid, (9999, 5), (1500, 9999))
+
+    # --- 路径加粗处理开始 ---
+    print("正在加粗路径...")
+
+    # 2. 创建一个只包含路径的布尔掩码 (True代表是路径)
+    path_mask = (path_grid == 2)
+
+    # 3. 对路径掩码进行膨胀操作
+    # 'iterations' 参数控制加粗的程度，值越大，路径越粗。可以从 2 或 3 开始尝试。
+    dilated_path_mask = binary_dilation(path_mask, iterations=6)
+
+    # 4. 将加粗后的路径应用回网格
+    # 在原有的 path_grid 上，所有被膨胀区域覆盖的地方，都赋值为 2
+    path_grid[dilated_path_mask] = 2
+
+    print("路径加粗完成。")
+    # --- 路径加粗处理结束 ---
+
+
+
+    # --- 图像清晰化处理开始 ---
+
+    # 3. 定义一个高对比度的颜色映射来区分不同区域
+    # 0: 可通行区域 (白色)
+    # 1: 障碍物 (黑色)
+    # 2: 路径 (红色) - 这是根据您之前代码逻辑推断的
+    colors = ['white', 'black', 'red']
+    cmap = ListedColormap(colors)
+    # 创建一个归一化器，确保数值和颜色正确对应
+    norm = plt.Normalize(vmin=0, vmax=2)
+
+    # 4. 创建一个尺寸合适的图像画布
+    # figsize 单位是英寸, 10x10英寸的画布可以容纳更多细节
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    # 5. 使用 imshow 显示网格
+    # interpolation='none' 可以确保在放大时，单元格边缘保持清晰的方块状
+    ax.imshow(path_grid, cmap=cmap, norm=norm, interpolation='none')
+
+    # 6. 【核心改动】移除所有会造成混乱的细节元素
+    # 不再绘制网格线和单元格文本，因为在3000x3000的尺度下它们只会变成一团乱麻
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title("3000x3000 Grid - High Clarity Overview", fontsize=16)
+
+    plt.show() # 用于快速预览
 
 
 
 if __name__ == '__main__':
-    test_astar_2d()
+    show_grid_high_clarity_overview()
     pass
 
 
