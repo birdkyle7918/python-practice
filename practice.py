@@ -456,7 +456,7 @@ def show_grid_high_clarity_overview():
     # 1. 加载.npz文件 (您的原始逻辑)
     # 为了让代码可以运行，我们先创建一个模拟文件
     try:
-        data = np.load('obstacles11.npz')
+        data = np.load('obstacle_grid_6000x6000.npz')
         print("已成功加载文件。")
     except FileNotFoundError:
         print("未找到，正在创建模拟数据文件...")
@@ -473,7 +473,8 @@ def show_grid_high_clarity_overview():
     # 2. 提取网格并运行A*算法
     origin_grid = data['grid']
     print('正在执行Astar算法...')
-    path_grid = get_astar_2d_result_grid(origin_grid, (9999, 5), (1500, 9999))
+    path_grid = get_astar_2d_result_grid(origin_grid, (5900, 0), (0, 1200))
+    # path_grid = origin_grid
 
     # --- 路径加粗处理开始 ---
     print("正在加粗路径...")
@@ -483,7 +484,7 @@ def show_grid_high_clarity_overview():
 
     # 3. 对路径掩码进行膨胀操作
     # 'iterations' 参数控制加粗的程度，值越大，路径越粗。可以从 2 或 3 开始尝试。
-    dilated_path_mask = binary_dilation(path_mask, iterations=6)
+    dilated_path_mask = binary_dilation(path_mask, iterations=5)
 
     # 4. 将加粗后的路径应用回网格
     # 在原有的 path_grid 上，所有被膨胀区域覆盖的地方，都赋值为 2
@@ -517,14 +518,16 @@ def show_grid_high_clarity_overview():
     # 不再绘制网格线和单元格文本，因为在3000x3000的尺度下它们只会变成一团乱麻
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_title("3000x3000 Grid - High Clarity Overview", fontsize=16)
+    ax.set_title("Grid - High Clarity Overview", fontsize=16)
 
     plt.show() # 用于快速预览
 
 
 
 if __name__ == '__main__':
-    show_grid_high_clarity_overview()
+    my_list = [0,0,0,0]
+    my_list.insert(-1, 1)
+    print(my_list)
     pass
 
 
