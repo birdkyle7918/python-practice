@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-from datetime import datetime, date
+from dataclasses import dataclass, field
+from datetime import date
+from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
+from typing import Optional
 
 import mysql.connector.pooling
 from flask import Flask, request, jsonify
@@ -34,7 +37,7 @@ handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y%m%d'
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
 # 将 formatter 应用到 handler
 handler.setFormatter(formatter)
@@ -92,14 +95,10 @@ def get_db_connection():
 @app.route('/schedule', methods=['POST'])
 def add_schedule():
     """
-    新增服务计划记录。
-    期望的 JSON 请求体示例:
-    {
-        "whore_username": "worker_A",
-        "client_username": "client_X",
-        "scheduled_time": "2025-08-15 10:30:00"
-    }
+    新增排课计划。
     """
+
+    # 入参json
     data = request.get_json()
     if not data:
         return jsonify({"code": 400, "message": "请求体为空或不是有效的 JSON"}), 400
@@ -107,9 +106,19 @@ def add_schedule():
     whore_username = data.get('whore_username')
     client_username = data.get('client_username')
     scheduled_time_str = data.get('scheduled_time')
+    user_id = data.get('user_id')
 
-    if not all([whore_username, client_username, scheduled_time_str]):
+    if not all([whore_username, client_username, scheduled_time_str, user_id]):
         return jsonify({"code": 400, "message": "缺少必要的参数"}), 400
+
+    # 先插入用户
+    try:
+        insert_user_obj: User = User(user_id=user_id)
+        insert_user_info(insert_user_obj)
+    except ValueError as v_e:
+        return jsonify({"code": 400, "message": str(v_e)}), 400
+    except Exception as e:
+        return jsonify({"code": 500, "message": str(e)}), 500
 
     try:
         # 将字符串时间转换为 datetime 对象
@@ -227,6 +236,40 @@ def delete_schedule():
             cursor.close()
         if conn:
             conn.close() # 使用完毕后将连接归还到连接池
+
+"""user类"""
+@dataclass
+class User:
+    user_id: int
+    premium_flag: bool = False
+    expired_time: Optional[datetime] = None
+
+"""插入user"""
+def insert_user_info(user: User) -> int:
+    """
+    如果用户不存在，则插入用户信息。
+    使用 INSERT IGNORE 实现原子操作，避免竞争条件。
+    """
+    if not user or not user.user_id:
+        raise ValueError("User and user_id cannot be empty.") # 使用更具体的异常类型
+
+    row_added = 0
+    sql = "INSERT IGNORE INTO user_info (user_id) VALUES (%s)"
+
+    try:
+        # 使用 'with' 语句自动管理连接和游标的关闭
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (user.user_id,)) # 注意参数是元组
+                conn.commit() # 提交事务，让插入生效
+                row_added = cursor.rowcount # rowcount 会返回受影响的行数 (插入成功为1, 忽略为0)
+    except mysql.connector.Error as e:
+        logger.error(f"Failed to insert user_info for user_id {user.user_id}: {e}")
+        # 重新抛出异常，并附带原始异常信息，便于追踪
+        raise Exception(f"Database operation failed for user_id {user.user_id}") from e
+
+    return row_added
+
 
 
 if __name__ == '__main__':

@@ -7,8 +7,8 @@ from logging.handlers import TimedRotatingFileHandler
 import httpx
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
-from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+
 from time_parser import SimpleChineseTimeParser
 
 # -------------------------------------------------配置--------------------------------------------------
@@ -200,7 +200,7 @@ async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
     await update.message.reply_text(
-        "你好！请点击下方的按钮，从你的联系人或通过搜索，选择一个你想排课的用户",
+        "你好！请点击下方的按钮，然后选择一个你想排课的用户",
         reply_markup=reply_markup
     )
 
@@ -217,19 +217,24 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         selected_user = shared_info.users[0]
 
-        username = shared_info.users[0].username
+        selected_username: str = selected_user.username
+        user_id: int = update.effective_user.id
+
         # 选择的用户没有用户名，直接结束
-        if not username:
+        if not selected_username:
             await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法进行排课。\n /select_user")
+            return ConversationHandler.END
+        if not user_id:
+            await update.message.reply_text("❌ 错误：你没有user_id，无法进行排课。\n /select_user")
             return ConversationHandler.END
 
         # 有用户名，则放入上下文
-        context.user_data['selected_username'] = selected_user.username
-        logger.info(f"{update.effective_user.username} 选择了 @{selected_user.username}，存入 user_data。")
+        context.user_data['selected_username'] = selected_username
+        context.user_data['user_id'] = user_id
 
         # ✅ 核心步骤：要求用户输入时间
         await update.message.reply_text(
-            f"✅ 选择成功！你选择了用户: @{selected_user.username}\n\n"
+            f"✅ 选择成功！你选择了用户: @{selected_username}\n\n"
             f"请输入你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `晚上10点30`）："
         )
         # ✅ 核心步骤：告诉 ConversationHandler 进入下一个状态
@@ -239,7 +244,7 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     return ConversationHandler.END
 
 
-"""处理用户输入的时间"""
+"""处理用户输入的时间，并调用post接口保存数据"""
 async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """接收用户输入的时间，调用API，并结束对话。"""
     user_input_time = update.message.text
@@ -249,7 +254,8 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user_input_time_str = simply_parser_obj.parse_time(user_input_time)
 
     # 从上下文中取出之前存储的用户名
-    selected_username = context.user_data.get('selected_username')
+    selected_username: str = context.user_data.get('selected_username')
+    user_id: int = context.user_data.get('user_id')
 
     if not selected_username:
         await update.message.reply_text("发生了一个错误，我忘记你之前选了哪个用户。请使用 /select_user 重新开始。")
@@ -263,7 +269,8 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     payload = {
         "whore_username": update.effective_user.username, # 操作的老师
         "client_username": selected_username, # 被排课的客户
-        "scheduled_time": user_input_time_str # 安排的时间
+        "scheduled_time": user_input_time_str, # 安排的时间
+        "user_id": user_id #本人user_id
     }
 
     try:
@@ -297,7 +304,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # 清理可能存在的临时数据
     context.user_data.clear()
     return ConversationHandler.END
-
 
 
 # --- 主程序入口 ---
