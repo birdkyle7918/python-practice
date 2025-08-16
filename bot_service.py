@@ -64,7 +64,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text(
         "你好，老师！欢迎使用排课机器人。\n\n"
         "请点击 /get_schedule 命令来查询你的排课记录。\n"
-        "请点击 /select_user 命令来添加排课\n"
+        "请点击 /select_user 命令来添加排课\n\n\n"
         "有问题请联系作者：@birdkyle79\n"
     )
 
