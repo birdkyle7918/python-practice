@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
-from datetime import datetime, timezone
+from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from typing import Optional
 
@@ -48,12 +48,13 @@ logger.addHandler(handler)
 # ------------------- 配置 -----------------------------
 app = Flask(__name__)
 
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 # --- 数据库连接池配置 ---
 # 请替换为您的数据库连接信息
 DB_CONFIG = {
     "host": "149.104.18.215",
     "user": "tguser",     # 替换为您的 MySQL 用户名
-    "password": "conan94202", # 替换为您的 MySQL 密码
+    "password": DB_PASSWORD, # 替换为您的 MySQL 密码
     "database": "tg", # 替换为您的数据库名
     "pool_name": "mypool",       # 连接池名称
     "pool_size": 10               # 连接池大小，建议根据应用负载调整

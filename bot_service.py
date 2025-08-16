@@ -17,9 +17,9 @@ from time_parser import SimpleChineseTimeParser
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # 查询排课列表URL
-BACKEND_API_URL_GET_SCHEDULES = "http://149.104.18.215:8848/get_schedules/{username}"
+BACKEND_API_URL_GET_SCHEDULES = "http://whore-bot.birdkyle7918.com/get_schedules/{username}"
 # 新增排课URL
-BACKEND_API_URL_POST_SCHEDULE = "http://149.104.18.215:8848/schedule"
+BACKEND_API_URL_POST_SCHEDULE = "http://whore-bot.birdkyle7918.com/schedule"
 
 
 # -------------------------------------------------日志--------------------------------------------------
