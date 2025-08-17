@@ -4,11 +4,13 @@ import os
 from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
+from functools import wraps
 from logging.handlers import TimedRotatingFileHandler
 from typing import Optional
 
 import mysql.connector.pooling
 from flask import Flask, request, jsonify
+import redis
 
 # ------------------- 日志 -----------------------------
 log_dir = 'logs'
@@ -60,6 +62,26 @@ DB_CONFIG = {
     "pool_size": 10               # 连接池大小，建议根据应用负载调整
 }
 
+
+# --- Redis 连接池配置 ---
+REDIS_PASSWORD = ""
+try:
+    redis_pool = redis.ConnectionPool(
+        host="127.0.0.1",
+        port=6379,
+        db=0,
+        password=REDIS_PASSWORD,
+        decode_responses=True # 自动解码，这样从 redis 获取的值就是字符串
+    )
+    redis_client = redis.Redis(connection_pool=redis_pool)
+    # 测试连接
+    redis_client.ping()
+    logger.info(f"Redis 连接成功")
+except redis.exceptions.ConnectionError as e:
+    logger.error(f"Redis 连接失败: {e}")
+    redis_client = None # 连接失败则将客户端设为 None
+
+
 # 数据库连接池
 db_pool = None
 
@@ -91,9 +113,56 @@ def get_db_connection():
         logger.error('从连接池获取连接失败: %s', e)
         return None
 
+
+
+# ------------------- 限流装饰器 -----------------------------
+def rate_limit(limit: int, per: int):
+    """
+    一个可配置的限流装饰器。
+    :param limit: 时间窗口内的最大请求数
+    :param per: 时间窗口的秒数
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not redis_client:
+                logger.warning("Redis 客户端未初始化，跳过限流检查。")
+                return f(*args, **kwargs)
+
+            # 从请求体中获取 user_id
+            data = request.get_json()
+            user_id = data.get('user_id') if data else None
+
+            if not user_id:
+                # 如果没有 user_id，可以选择直接放行或返回错误
+                # 这里选择放行，但记录一个警告
+                logger.warning(f"请求 {request.path} 缺少 user_id，跳过限流。")
+                return f(*args, **kwargs)
+
+            # 使用函数名和用户ID构成唯一的 key
+            key = f"rate_limit:{f.__name__}:{user_id}"
+            try:
+                current_count = redis_client.incr(key)
+                if current_count == 1:
+                    redis_client.expire(key, per)
+
+                if current_count > limit:
+                    logger.warning(f"用户 {user_id} 请求 {f.__name__} 接口过于频繁，已达上限。")
+                    return jsonify({"code": 429, "message": f"请求过于频繁，请在{per // 3600}小时后重试"}), 429
+            except redis.exceptions.RedisError as e:
+                logger.error(f"Redis 限流检查失败: {e}")
+                # Redis 故障时，放行请求以保证核心功能可用
+                pass
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 # ------------------- 接口 -----------------------------
 
 @app.route('/schedule', methods=['POST'])
+@rate_limit(limit=100, per=86400) # 应用装饰器，限制为 24 小时内 100 次
 def add_schedule():
     """
     新增排课计划。
