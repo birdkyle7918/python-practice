@@ -255,7 +255,9 @@ async def delete_schedule_command(update: Update, context: ContextTypes.DEFAULT_
     # 使用不同的 request_id 来区分是“新增”还是“删除”操作
     request_user_object = KeyboardButtonRequestUsers(
         request_id=2,  # 删除排课的请求ID为 2
-        user_is_bot=False
+        user_is_bot=False,
+        request_name = True,
+        request_username = True
     )
 
     user_request_button = KeyboardButton(
@@ -270,7 +272,7 @@ async def delete_schedule_command(update: Update, context: ContextTypes.DEFAULT_
     )
 
     await update.message.reply_text(
-        "请点击下方的删除排课按钮，选择一个你想删除其排课记录的用户",
+        "请点击下方的删除排课按钮，选择一个你想删除排课的用户",
         reply_markup=reply_markup
     )
 
@@ -317,9 +319,6 @@ async def route_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     # --- 逻辑分支 2: 删除排课 ---
     elif request_id == 2:
-        logger.info(f" 你的用户信息: {update.effective_user}")
-        logger.info(f" 对方的用户信息: {selected_user}")
-
 
         if not selected_user.username:
             await update.message.reply_text("❌ 错误：对方没有设置用户名，无法操作。")
