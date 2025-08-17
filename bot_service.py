@@ -154,7 +154,7 @@ def to_table_format(json_string: str) -> str | None:
     )
 
     # 使用 <pre> 标签来确保 Telegram 使用等宽字体渲染
-    return f"<pre>{full_content}</pre>"
+    return f"{full_content}"
 
 
 """查询排课记录"""
