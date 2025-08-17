@@ -3,7 +3,6 @@ import json
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
-from typing import Dict, Any
 
 import httpx
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
