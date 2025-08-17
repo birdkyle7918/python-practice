@@ -5,7 +5,6 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 
 import httpx
-import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
@@ -132,12 +131,9 @@ def to_table_format(json_string: str) -> str | None:
 """查询排课记录"""
 async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """当用户发送 /get_schedule 命令时，此函数会被调用"""
-
-    # 1. 获取用户信息
     user = update.message.from_user
     username = user.username
 
-    # 检查用户是否设置了 Telegram 用户名
     if not username:
         await update.message.reply_text(
             "抱歉，我无法获取你的排课信息，因为你没有设置 Telegram 用户名。\n"
@@ -145,14 +141,14 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         return
 
-    # 2. 构造请求 URL 并调用后端服务
     api_url = BACKEND_API_URL_GET_SCHEDULES.format(username=username)
+    reply_message = ""
 
     try:
-        # 发送 GET 请求
-        response = requests.get(api_url, timeout=5)  # 设置10秒超时
+        # --- 修改：使用 httpx 进行异步请求 ---
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url, timeout=10)
 
-        # 检查 HTTP 响应状态码
         if response.status_code == 200:
             data = response.text
             table_content = to_table_format(data)
@@ -160,18 +156,14 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
                 reply_message = "排课信息如下：\n\n" + table_content
             else:
                 reply_message = "没有找到排课信息\n\n/help"
-
-        # 如果服务器返回了错误码（如 404, 500等）
         else:
             reply_message = "抱歉，查询失败，请联系作者 @birdkyle7918"
             logger.error(f"调用 API 失败，状态码: {response.status_code}, URL: {api_url}")
 
-    except requests.exceptions.RequestException as e:
-        # 处理网络问题或其他请求错误
-        reply_message = "机器人开小差了～请稍后再试。"
+    except httpx.RequestError as e:
+        reply_message = "机器人开小差了～"
         logger.error(f"调用 API 时发生网络错误: {e}")
 
-    # 3. 将结果发送回 Telegram
     await update.message.reply_text(reply_message)
 
 
@@ -388,25 +380,20 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 # --- 主程序入口 ---
 def main() -> None:
-
     if not TELEGRAM_BOT_TOKEN:
         logger.critical("错误：未设置 TELEGRAM_BOT_TOKEN 环境变量！")
         return
 
-    """启动应用"""
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-
-    # 过滤器：只处理 request_id 为 1 的用户分享（用于新增排课）
-    add_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda m: m.users_shared and m.users_shared.request_id == 1)
-    # 过滤器：只处理 request_id 为 2 的用户分享（用于删除排课）
-    delete_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda m: m.users_shared and m.users_shared.request_id == 2)
-
+    # --- 核心修改：修正过滤器逻辑 ---
+    # 过滤器接收的是 Update 对象，所以需要从 update.message 中获取 users_shared
+    add_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda update: update.message.users_shared.request_id == 1)
+    delete_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda update: update.message.users_shared.request_id == 2)
 
     conv_handler = ConversationHandler(
         entry_points=[
-            # 对话的入口点是当用户分享了一个用户之后
-            MessageHandler(add_user_filter, users_shared) # <--- 修改
+            MessageHandler(add_user_filter, users_shared)
         ],
         states={
             AWAITING_TIME: [
@@ -414,7 +401,6 @@ def main() -> None:
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
-        # 如果用户在对话中发送了不相关的命令，可以提醒他
         conversation_timeout=200
     )
 
@@ -422,7 +408,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
-    application.add_handler(CommandHandler("select_user", select_user))  # 这个命令只负责拉起按钮
+    application.add_handler(CommandHandler("select_user", select_user))
     application.add_handler(CommandHandler("delete", delete_schedule_command))
 
     # 注册对话处理器
@@ -431,6 +417,7 @@ def main() -> None:
     application.add_handler(MessageHandler(delete_user_filter, user_to_delete_shared))
 
     print("机器人已启动，正在等待命令...")
+    logger.info("机器人服务已启动")
     application.run_polling()
 
 
