@@ -316,59 +316,33 @@ async def delete_schedule_command(update: Update, context: ContextTypes.DEFAULT_
     )
 
 """接收到用户分享信息后处理"""
-async def user_to_delete_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None: # <--- 新增
-    """当用户通过删除按钮分享了一个用户后，处理收到的信息并调用删除API"""
-    shared_info = update.message.users_shared
-    selected_user = shared_info.users[0]
+async def user_to_delete_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if not (update.message.users_shared and update.message.users_shared.users):
+        return ConversationHandler.END
 
+    selected_user = update.message.users_shared.users[0]
+    if not selected_user.username or not update.effective_user.username:
+        await update.message.reply_text("❌ 错误：你或对方没有设置用户名，无法操作。")
+        return ConversationHandler.END
 
-    whore_username = update.effective_user.username
-    client_username = selected_user.username
-
-    # 检查操作者和被选用户是否都有用户名
-    if not client_username:
-        await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法操作。")
-        return
-    if not whore_username:
-        await update.message.reply_text("❌ 错误：你没有设置Telegram用户名，无法操作。")
-        return
-
-    await update.message.reply_text(f"正在删除客户 @{client_username} 的排课...")
-
-    # --- 调用后端删除API ---
-    # DELETE 请求通常将参数放在 body 或 query parameters 中，这里我们使用 json body
-    payload = {
-        "whore_username": whore_username,
-        "client_username": client_username,
-    }
-
+    await update.message.reply_text(f"正在删除客户 @{selected_user.username} 的排课...")
+    payload = {"whore_username": update.effective_user.username, "client_username": selected_user.username}
     try:
         async with httpx.AsyncClient() as client:
-            # 发起 DELETE 请求
-            response = await client.request("DELETE", BACKEND_API_URL_DELETE_SCHEDULE, json=payload, timeout=5)
-
-        # 接口请求成功
+            response = await client.request("DELETE", BACKEND_API_URL_DELETE_SCHEDULE, json=payload, timeout=10)
         if response.status_code == 200:
-            response_data = response.json()
-            row_deleted = response_data['row_deleted']
-            if row_deleted == 0:
-                reply_message = f"✅ 成功删除 0 条排课记录"
-            else:
-                reply_message = f"✅ 成功！已删除 @{client_username} 的 {row_deleted} 条排课记录"
-
-        # 接口请求失败
+            row_deleted = response.json().get('row_deleted', 0)
+            reply_message = f"✅ 成功！已删除 @{selected_user.username} 的 {row_deleted} 条排课记录"
         else:
             reply_message = f"❌ 删除失败，请联系作者 @birdkyle79"
-            logger.error(f"调用删除排课API失败: @{whore_username}")
-
-    # 网络异常
+            logger.error(
+                f"删除排课API失败: @{update.effective_user.username}, 状态码: {response.status_code}, 响应: {response.text}")
     except httpx.RequestError as e:
         reply_message = "❌ 机器人开小差啦"
-        logger.error(f"调用删除排课API时发生网络错误: {e}")
+        logger.error(f"删除排课API网络错误: {e}")
 
     await update.message.reply_text(reply_message)
-
-
+    return ConversationHandler.END
 
 """用于取消对话"""
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -400,7 +374,7 @@ class RequestIdFilter(BaseFilter):
         )
 
 
-# --- 主程序入口 ---
+"""主程序"""
 def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         logger.critical("错误：未设置 TELEGRAM_BOT_TOKEN 环境变量！")
@@ -408,35 +382,30 @@ def main() -> None:
 
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # --- 核心修改：修正过滤器逻辑 ---
-    # 过滤器接收的是 Update 对象，所以需要从 update.message 中获取 users_shared
     add_user_filter = RequestIdFilter(request_id=1)
     delete_user_filter = RequestIdFilter(request_id=2)
 
+    # --- 修改：将删除逻辑也作为 ConversationHandler 的入口 ---
     conv_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(add_user_filter, users_shared)
+            MessageHandler(add_user_filter, users_shared),
+            MessageHandler(delete_user_filter, user_to_delete_shared)  # 新增的入口点
         ],
         states={
-            AWAITING_TIME: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_time_input)
-            ],
+            AWAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_time_input)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         conversation_timeout=200
     )
 
-    # 注册常规命令
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
     application.add_handler(CommandHandler("select_user", select_user))
     application.add_handler(CommandHandler("delete", delete_schedule_command))
 
-    # 注册对话处理器
+    # 注册这一个总的对话处理器
     application.add_handler(conv_handler)
-    # 注册删除功能的消息处理器
-    application.add_handler(MessageHandler(delete_user_filter, user_to_delete_shared))
 
     print("机器人已启动，正在等待命令...")
     logger.info("机器人服务已启动")
