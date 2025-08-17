@@ -168,7 +168,7 @@ def get_schedules(whore_username):
     try:
         cursor = conn.cursor(dictionary=True) # 以字典形式返回结果
         today = date.today() # 获取今天的日期
-        # 查询 scheduled_time 大于今天（即今天午夜之后）的数据
+        # 查询 scheduled_time 大于今天的数据
         query = """
         SELECT whore_username, client_username, scheduled_time, gmt_create, gmt_modified
         FROM whore_service_schedule

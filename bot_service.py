@@ -236,7 +236,7 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         # ✅ 核心步骤：要求用户输入时间
         await update.message.reply_text(
             f"✅ 选择成功！你选择了用户: @{selected_username}\n\n"
-            f"请输入你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `晚上10点30`）："
+            f"请发送给我，你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `明天晚上10点30`）："
         )
         # ✅ 核心步骤：告诉 ConversationHandler 进入下一个状态
         return AWAITING_TIME
