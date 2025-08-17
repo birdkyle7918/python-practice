@@ -174,6 +174,7 @@ def get_schedules(whore_username):
         FROM whore_service_schedule
         WHERE whore_username = %s AND scheduled_time > %s
         ORDER BY scheduled_time ASC
+        LIMIT 30    
         """
         cursor.execute(query, (whore_username, today))
         results = cursor.fetchall()
