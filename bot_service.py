@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
+from typing import Dict, Any
 
 import httpx
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
@@ -378,6 +379,27 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+
+from telegram.ext.filters import BaseFilter
+class RequestIdFilter(BaseFilter):
+    """根据 users_shared.request_id 过滤更新"""
+    def __init__(self, request_id: int):
+        self.request_id = request_id
+        # data_filter=True 表示这个过滤器可以被用在 MessageHandler 中
+        super().__init__(data_filter=True)
+
+    def filter(self, update: Update) -> bool | Dict[str, Any]:
+        """
+        检查 update.message.users_shared 是否存在并且 request_id 是否匹配。
+        """
+        return (
+            isinstance(update, Update)
+            and update.message
+            and update.message.users_shared
+            and update.message.users_shared.request_id == self.request_id
+        )
+
+
 # --- 主程序入口 ---
 def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
@@ -388,8 +410,8 @@ def main() -> None:
 
     # --- 核心修改：修正过滤器逻辑 ---
     # 过滤器接收的是 Update 对象，所以需要从 update.message 中获取 users_shared
-    add_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda update: update.message.users_shared.request_id == 1)
-    delete_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda update: update.message.users_shared.request_id == 2)
+    add_user_filter = RequestIdFilter(request_id=1)
+    delete_user_filter = RequestIdFilter(request_id=2)
 
     conv_handler = ConversationHandler(
         entry_points=[
