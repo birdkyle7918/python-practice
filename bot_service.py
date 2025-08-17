@@ -201,46 +201,6 @@ async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 # 使用 range 创建唯一的整数状态码，更稳健
 AWAITING_TIME, _ = range(2)
 
-"""接收到用户分享信息后处理"""
-async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """当用户通过按钮分享了一个用户后，处理收到的信息。"""
-
-    # 使用海象运算符 (:=) 来进行赋值和检查，代码更健壮且能消除IDE警告
-    if (shared_info := update.message.users_shared) and shared_info.request_id == 1:
-
-        selected_user = shared_info.users[0]
-
-        selected_username: str = selected_user.username
-        user_id: int = update.effective_user.id
-        username: str = update.effective_user.username
-
-        # 选择的用户没有用户名，直接结束
-        if not selected_username:
-            await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法进行排课。\n /select_user")
-            return ConversationHandler.END
-        if not user_id:
-            await update.message.reply_text("❌ 错误：你没有user_id，无法进行排课。\n /select_user")
-            return ConversationHandler.END
-        if not username:
-            await update.message.reply_text("❌ 错误：你没有设置username，无法进行排课。\n /select_user")
-            return ConversationHandler.END
-
-        # 有用户名，则放入上下文
-        context.user_data['selected_username'] = selected_username
-        context.user_data['user_id'] = user_id
-
-        # ✅ 核心步骤：要求用户输入时间
-        await update.message.reply_text(
-            f"✅ 选择成功！你选择了用户: @{selected_username}\n\n"
-            f"请发送给我，你要为他安排的时间（例如：`今天下午5点` 或 `今天晚上10点` 或 `明天晚上10点30`）："
-        )
-        # ✅ 核心步骤：告诉 ConversationHandler 进入下一个状态
-        return AWAITING_TIME
-
-    # 如果消息不符合预期，也结束对话
-    return ConversationHandler.END
-
-
 """处理用户输入的时间，并调用post接口保存数据"""
 async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """接收用户输入的时间，调用API，并结束对话。"""
@@ -314,34 +274,6 @@ async def delete_schedule_command(update: Update, context: ContextTypes.DEFAULT_
         reply_markup=reply_markup
     )
 
-"""接收到用户分享信息后处理"""
-async def user_to_delete_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if not (update.message.users_shared and update.message.users_shared.users):
-        return ConversationHandler.END
-
-    selected_user = update.message.users_shared.users[0]
-    if not selected_user.username or not update.effective_user.username:
-        await update.message.reply_text("❌ 错误：你或对方没有设置用户名，无法操作。")
-        return ConversationHandler.END
-
-    await update.message.reply_text(f"正在删除客户 @{selected_user.username} 的排课...")
-    payload = {"whore_username": update.effective_user.username, "client_username": selected_user.username}
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.request("DELETE", BACKEND_API_URL_DELETE_SCHEDULE, json=payload, timeout=10)
-        if response.status_code == 200:
-            row_deleted = response.json().get('row_deleted', 0)
-            reply_message = f"✅ 成功！已删除 @{selected_user.username} 的 {row_deleted} 条排课记录"
-        else:
-            reply_message = f"❌ 删除失败，请联系作者 @birdkyle79"
-            logger.error(
-                f"删除排课API失败: @{update.effective_user.username}, 状态码: {response.status_code}, 响应: {response.text}")
-    except httpx.RequestError as e:
-        reply_message = "❌ 机器人开小差啦"
-        logger.error(f"删除排课API网络错误: {e}")
-
-    await update.message.reply_text(reply_message)
-    return ConversationHandler.END
 
 """用于取消对话"""
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -385,8 +317,15 @@ async def route_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     # --- 逻辑分支 2: 删除排课 ---
     elif request_id == 2:
-        if not selected_user.username or not update.effective_user.username:
-            await update.message.reply_text("❌ 错误：你或对方没有设置用户名，无法操作。")
+        logger.info(f" 你的用户信息: {update.effective_user}")
+        logger.info(f" 对方的用户信息: {selected_user}")
+
+
+        if not selected_user.username:
+            await update.message.reply_text("❌ 错误：对方没有设置用户名，无法操作。")
+            return ConversationHandler.END
+        if not update.effective_user.username:
+            await update.message.reply_text("❌ 错误：你没有设置用户名，无法操作。")
             return ConversationHandler.END
 
         await update.message.reply_text(f"正在删除客户 @{selected_user.username} 的排课...")
