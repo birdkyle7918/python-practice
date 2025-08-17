@@ -20,6 +20,9 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_API_URL_GET_SCHEDULES = "https://whore-bot.birdkyle7918.com/get_schedules/{username}"
 # 新增排课URL
 BACKEND_API_URL_POST_SCHEDULE = "https://whore-bot.birdkyle7918.com/schedule"
+# 删除排课URL
+BACKEND_API_URL_DELETE_SCHEDULE = "https://whore-bot.birdkyle7918.com/schedule"
+
 
 
 # -------------------------------------------------日志--------------------------------------------------
@@ -140,10 +143,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
             "抱歉，我无法获取你的排课信息，因为你没有设置 Telegram 用户名。\n"
             "请在 Telegram 的“设置”中设置一个公开的用户名（Username）。"
         )
-        logger.warning(f"用户 {user.full_name} (ID: {user.id}) 没有设置用户名。")
         return
-
-    logger.info(f"收到来自用户 @{username} 的请求。")
 
     # 2. 构造请求 URL 并调用后端服务
     api_url = BACKEND_API_URL_GET_SCHEDULES.format(username=username)
@@ -160,9 +160,10 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
                 reply_message = "排课信息如下：\n\n" + table_content
             else:
                 reply_message = "没有找到排课信息\n\n/help"
+
+        # 如果服务器返回了错误码（如 404, 500等）
         else:
-            # 如果服务器返回了错误码（如 404, 500等）
-            reply_message = "抱歉，查询失败。"
+            reply_message = "抱歉，查询失败，请联系作者 @birdkyle7918"
             logger.error(f"调用 API 失败，状态码: {response.status_code}, URL: {api_url}")
 
     except requests.exceptions.RequestException as e:
@@ -171,12 +172,11 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
         logger.error(f"调用 API 时发生网络错误: {e}")
 
     # 3. 将结果发送回 Telegram
-    logger.info('输出消息为 %s', reply_message)
     await update.message.reply_text(reply_message)
 
 
 
-"""弹出选择用户按钮"""
+"""接收/select_user指令"""
 async def select_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # 使用 KeyboardButtonRequestUser 类来创建请求对象，而不是直接使用字典
@@ -220,6 +220,7 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         selected_username: str = selected_user.username
         user_id: int = update.effective_user.id
+        username: str = update.effective_user.username
 
         # 选择的用户没有用户名，直接结束
         if not selected_username:
@@ -227,6 +228,9 @@ async def users_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             return ConversationHandler.END
         if not user_id:
             await update.message.reply_text("❌ 错误：你没有user_id，无法进行排课。\n /select_user")
+            return ConversationHandler.END
+        if not username:
+            await update.message.reply_text("❌ 错误：你没有设置username，无法进行排课。\n /select_user")
             return ConversationHandler.END
 
         # 有用户名，则放入上下文
@@ -263,7 +267,6 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         logger.error("在 handle_time_input 中无法从 user_data 获取 selected_username")
         return ConversationHandler.END
 
-    logger.info(f"{update.effective_user.id} 为用户 @{selected_username} 安排时间：{user_input_time_str}")
     await update.message.reply_text(f"正在为 @{selected_username} 排课")
 
     # --- 调用后端API ---
@@ -279,14 +282,10 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             response = await client.post(BACKEND_API_URL_POST_SCHEDULE, json=payload, timeout=5)
 
         if response.status_code == 200 or response.status_code == 201: # 200 OK or 201 Created
-            api_data = response.json()
-            if api_data.get('code') == 200:
-                reply_message = f"✅ 成功！已为 @{selected_username} 安排时间：`{user_input_time_str}`。"
-            else:
-                reply_message = f"机器人开小差啦～"
+            reply_message = f"✅ 成功！已为 @{selected_username} 安排时间：`{user_input_time_str}`。"
         else:
             reply_message = f"❌ 排课失败，机器人偷懒去了~"
-            logger.error(f"调用新增排课API失败: {response.status_code} - {response.text}")
+            logger.error(f"调用新增排课API失败: {update.effective_user.username}")
 
     except httpx.RequestError as e:
         reply_message = "❌ 机器人开小差啦～"
@@ -297,6 +296,86 @@ async def handle_time_input(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # 清理 user_data 并结束对话
     context.user_data.clear()
     return ConversationHandler.END
+
+"""接收/delete指令"""
+async def delete_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """当用户发送 /delete 命令时，发送选择用户的按钮"""
+    # 使用不同的 request_id 来区分是“新增”还是“删除”操作
+    request_user_object = KeyboardButtonRequestUsers(
+        request_id=2,  # 删除排课的请求ID为 2
+        user_is_bot=False
+    )
+
+    user_request_button = KeyboardButton(
+        text="删除排课",
+        request_users=request_user_object
+    )
+
+    reply_markup = ReplyKeyboardMarkup(
+        [[user_request_button]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
+    await update.message.reply_text(
+        "请点击下方的删除排课按钮，选择一个你想删除其排课记录的用户",
+        reply_markup=reply_markup
+    )
+
+"""接收到用户分享信息后处理"""
+async def user_to_delete_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None: # <--- 新增
+    """当用户通过删除按钮分享了一个用户后，处理收到的信息并调用删除API"""
+    shared_info = update.message.users_shared
+    selected_user = shared_info.users[0]
+
+
+    whore_username = update.effective_user.username
+    client_username = selected_user.username
+
+    # 检查操作者和被选用户是否都有用户名
+    if not client_username:
+        await update.message.reply_text("❌ 错误：你选择的用户没有设置Telegram用户名，无法操作。")
+        return
+    if not whore_username:
+        await update.message.reply_text("❌ 错误：你没有设置Telegram用户名，无法操作。")
+        return
+
+    await update.message.reply_text(f"正在删除客户 @{client_username} 的排课...")
+
+    # --- 调用后端删除API ---
+    # DELETE 请求通常将参数放在 body 或 query parameters 中，这里我们使用 json body
+    payload = {
+        "whore_username": whore_username,
+        "client_username": client_username,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            # 发起 DELETE 请求
+            response = await client.request("DELETE", BACKEND_API_URL_DELETE_SCHEDULE, json=payload, timeout=5)
+
+        # 接口请求成功
+        if response.status_code == 200:
+            response_data = response.json()
+            row_deleted = response_data['row_deleted']
+            if row_deleted == 0:
+                reply_message = f"✅ 成功删除 0 条排课记录"
+            else:
+                reply_message = f"✅ 成功！已删除 @{client_username} 的 {row_deleted} 条排课记录"
+
+        # 接口请求失败
+        else:
+            reply_message = f"❌ 删除失败，请联系作者 @birdkyle79"
+            logger.error(f"调用删除排课API失败: @{whore_username}")
+
+    # 网络异常
+    except httpx.RequestError as e:
+        reply_message = "❌ 机器人开小差啦"
+        logger.error(f"调用删除排课API时发生网络错误: {e}")
+
+    await update.message.reply_text(reply_message)
+
+
 
 """用于取消对话"""
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -317,10 +396,17 @@ def main() -> None:
     """启动应用"""
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
+
+    # 过滤器：只处理 request_id 为 1 的用户分享（用于新增排课）
+    add_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda m: m.users_shared and m.users_shared.request_id == 1)
+    # 过滤器：只处理 request_id 为 2 的用户分享（用于删除排课）
+    delete_user_filter = filters.StatusUpdate.USERS_SHARED & (lambda m: m.users_shared and m.users_shared.request_id == 2)
+
+
     conv_handler = ConversationHandler(
         entry_points=[
             # 对话的入口点是当用户分享了一个用户之后
-            MessageHandler(filters.StatusUpdate.USERS_SHARED, users_shared)
+            MessageHandler(add_user_filter, users_shared) # <--- 修改
         ],
         states={
             AWAITING_TIME: [
@@ -337,9 +423,12 @@ def main() -> None:
     application.add_handler(CommandHandler("help", start_command))
     application.add_handler(CommandHandler("get_schedule", get_schedule_command))
     application.add_handler(CommandHandler("select_user", select_user))  # 这个命令只负责拉起按钮
+    application.add_handler(CommandHandler("delete", delete_schedule_command))
 
     # 注册对话处理器
     application.add_handler(conv_handler)
+    # 注册删除功能的消息处理器
+    application.add_handler(MessageHandler(delete_user_filter, user_to_delete_shared))
 
     print("机器人已启动，正在等待命令...")
     application.run_polling()
