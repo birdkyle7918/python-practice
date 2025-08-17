@@ -353,28 +353,67 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+# --- 核心修改：创建一个统一的“路由器”函数 ---
+async def route_user_shared(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    根据 request_id 分发用户分享事件。
+    request_id=1: 新增排课流程
+    request_id=2: 删除排课操作
+    """
+    if not (update.message and update.message.users_shared and update.message.users_shared.users):
+        return ConversationHandler.END
 
-from telegram.ext.filters import BaseFilter
-class RequestIdFilter(BaseFilter):
-    """根据 users_shared.request_id 过滤更新"""
-    def __init__(self, request_id: int):
-        self.request_id = request_id
-        # data_filter=True 表示这个过滤器可以被用在 MessageHandler 中
-        super().__init__(data_filter=True)
+    request_id = update.message.users_shared.request_id
+    selected_user = update.message.users_shared.users[0]
 
-    def filter(self, update: Update) -> bool | Dict[str, Any]:
-        """
-        检查 update.message.users_shared 是否存在并且 request_id 是否匹配。
-        """
-        return (
-            isinstance(update, Update)
-            and update.message
-            and update.message.users_shared
-            and update.message.users_shared.request_id == self.request_id
+    # --- 逻辑分支 1: 新增排课 ---
+    if request_id == 1:
+        if not selected_user.username:
+            await update.message.reply_text("❌ 错误：你选择的用户没有设置用户名，无法排课。\n /select_user")
+            return ConversationHandler.END
+        if not update.effective_user.username:
+            await update.message.reply_text("❌ 错误：你没有设置用户名，无法排课。\n /select_user")
+            return ConversationHandler.END
+
+        context.user_data['selected_username'] = selected_user.username
+        context.user_data['user_id'] = update.effective_user.id
+        await update.message.reply_text(
+            f"✅ 选择成功！你选择了用户: @{selected_user.username}\n\n"
+            f"请发送给我你要为他安排的时间（例如：`今天下午5点`）："
         )
+        # 进入下一个对话状态，等待时间输入
+        return AWAITING_TIME
+
+    # --- 逻辑分支 2: 删除排课 ---
+    elif request_id == 2:
+        if not selected_user.username or not update.effective_user.username:
+            await update.message.reply_text("❌ 错误：你或对方没有设置用户名，无法操作。")
+            return ConversationHandler.END
+
+        await update.message.reply_text(f"正在删除客户 @{selected_user.username} 的排课...")
+        payload = {"whore_username": update.effective_user.username, "client_username": selected_user.username}
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.request("DELETE", BACKEND_API_URL_DELETE_SCHEDULE, json=payload, timeout=10)
+            if response.status_code == 200:
+                row_deleted = response.json().get('row_deleted', 0)
+                reply_message = f"✅ 成功！已删除 @{selected_user.username} 的 {row_deleted} 条排课记录"
+            else:
+                reply_message = f"❌ 删除失败，请联系作者 @birdkyle79"
+                logger.error(
+                    f"删除排课API失败: @{update.effective_user.username}, 状态码: {response.status_code}, 响应: {response.text}")
+        except httpx.RequestError as e:
+            reply_message = "❌ 机器人开小差啦"
+            logger.error(f"删除排课API网络错误: {e}")
+
+        await update.message.reply_text(reply_message)
+        # 删除操作是单步的，直接结束对话
+        return ConversationHandler.END
+
+    # 如果 request_id 不是 1 或 2，也结束对话
+    return ConversationHandler.END
 
 
-"""主程序"""
 def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         logger.critical("错误：未设置 TELEGRAM_BOT_TOKEN 环境变量！")
@@ -382,14 +421,11 @@ def main() -> None:
 
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    add_user_filter = RequestIdFilter(request_id=1)
-    delete_user_filter = RequestIdFilter(request_id=2)
-
-    # --- 修改：将删除逻辑也作为 ConversationHandler 的入口 ---
+    # --- 修改：使用统一的入口点和路由器 ---
     conv_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(add_user_filter, users_shared),
-            MessageHandler(delete_user_filter, user_to_delete_shared)  # 新增的入口点
+            # 只用一个 Handler 来捕获所有用户分享事件
+            MessageHandler(filters.StatusUpdate.USERS_SHARED, route_user_shared)
         ],
         states={
             AWAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_time_input)],
