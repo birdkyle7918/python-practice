@@ -193,7 +193,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
         reply_message = "机器人开小差了～"
         logger.error(f"调用 API 时发生网络错误: {e}")
 
-    await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(reply_message)
 
 
 
