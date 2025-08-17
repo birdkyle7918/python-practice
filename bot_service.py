@@ -6,6 +6,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 import httpx
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
+from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
 from time_parser import SimpleChineseTimeParser
@@ -71,62 +72,86 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
 
 
-"""优化输出格式为表格"""
-def to_table_format(json_string: str) -> str | None:
-    data = json.loads(json_string)
+# --- 新增：用于计算字符串显示宽度的辅助函数 ---
+def get_display_width(text: str) -> int:
+    """
+    计算字符串的显示宽度。
+    一个英文字符宽度为1，一个中文字符宽度为2。
+    """
+    width = 0
+    for char in text:
+        # \u4e00-\u9fa5 是中文字符的 Unicode 范围
+        if '\u4e00' <= char <= '\u9fa5':
+            width += 2
+        else:
+            width += 1
+    return width
 
-    if not (data['code'] == 200 and data['data']):
-        logger.error('处理json失败，json内容不是标准格式，json内容：%s', json_string)
+
+# --- 核心修改：优化输出格式为表格 ---
+def to_table_format(json_string: str) -> str | None:
+    """将JSON数据转换为对齐的、等宽字体的表格字符串"""
+    try:
+        data = json.loads(json_string)
+    except json.JSONDecodeError:
+        logger.error('解析JSON失败, 内容: %s', json_string)
+        return None
+
+    if not (data.get('code') == 200 and data.get('data')):
+        logger.warning('JSON数据格式不符合预期, 内容: %s', json_string)
         return None
 
     records = data['data']
-    if records is None or len(records) == 0:
+    if not records:
         return None
 
-    # 1. 定义表头
     headers = {
         "client_username": "客户",
         "scheduled_time": "预约时间"
     }
 
-    # 2. 计算每列所需的最大宽度
-    # 先用表头标题的长度初始化
-    col_widths = {k: len(v) for k, v in headers.items()}
-
-    # 遍历数据，更新最大宽度
+    # 1. 使用 get_display_width 计算每列的最大显示宽度
+    col_widths = {k: get_display_width(v) for k, v in headers.items()}
     for record in records:
         for key, value in record.items():
-            if key in headers:  # 只处理我们需要展示的列
-                col_widths[key] = max(col_widths.get(key, 0), len(str(value)))
+            if key in headers:
+                col_widths[key] = max(col_widths.get(key, 0), get_display_width(str(value)))
 
-    # 3. 构建表头字符串
+    # 2. 辅助函数：根据显示宽度进行填充
+    def pad_str(text: str, width: int) -> str:
+        current_width = get_display_width(text)
+        padding = ' ' * (width - current_width)
+        return text + padding
+
+    # 3. 构建表头
     header_line = ""
     for key, header_name in headers.items():
-        # ljust 用于左对齐，并用空格填充到指定宽度
-        header_line += header_name.ljust(col_widths[key] + 2)  # +2 是为了增加一些间距
+        header_line += pad_str(header_name, col_widths[key]) + "  "
 
     # 4. 构建分隔线
     separator_line = ""
     for key in headers:
-        separator_line += "-" * col_widths[key] + "  "
+        separator_line += "-" * col_widths[key] + "--"
 
     # 5. 构建数据行
     data_lines = []
     for record in records:
         line = ""
         for key in headers:
-            value = str(record.get(key, ''))  # 安全地获取值
-            line += value.ljust(col_widths[key] + 2)
+            value = str(record.get(key, ''))
+            line += pad_str(value, col_widths[key]) + "  "
         data_lines.append(line)
 
-    # 6. 组合成最终消息
-    # 使用 <pre> 标签包裹所有内容，以保证是等宽字体并且保留所有空格和换行
-    final_message = ""
-    final_message += f"{header_line}\n"
-    final_message += f"{separator_line}\n"
-    final_message += "\n".join(data_lines)
+    # 6. 组合所有部分，并用 <pre> 标签包裹以强制使用等宽字体
+    full_content = (
+        f"{header_line}\n"
+        f"{separator_line}\n"
+        f"{'\n'.join(data_lines)}"
+    )
 
-    return final_message
+    # 使用 <pre> 标签来确保 Telegram 使用等宽字体渲染
+    return f"<pre>{full_content}</pre>"
+
 
 """查询排课记录"""
 async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -164,7 +189,7 @@ async def get_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYP
         reply_message = "机器人开小差了～"
         logger.error(f"调用 API 时发生网络错误: {e}")
 
-    await update.message.reply_text(reply_message)
+    await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML)
 
 
 
