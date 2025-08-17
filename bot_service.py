@@ -142,11 +142,15 @@ def to_table_format(json_string: str) -> str | None:
             line += pad_str(value, col_widths[key]) + "  "
         data_lines.append(line)
 
-    # 6. 组合所有部分，并用 <pre> 标签包裹以强制使用等宽字体
+    # --- 语法修正：将 .join() 操作移出 f-string 表达式 ---
+    # 6. 组合所有部分
+    # 先将所有数据行用换行符连接成一个大字符串
+    data_string = "\n".join(data_lines)
+    # 然后再用 f-string 组合，避免在表达式内部出现 '\'
     full_content = (
         f"{header_line}\n"
         f"{separator_line}\n"
-        f"{'\n'.join(data_lines)}"
+        f"{data_string}"
     )
 
     # 使用 <pre> 标签来确保 Telegram 使用等宽字体渲染
