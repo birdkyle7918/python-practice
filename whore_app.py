@@ -187,7 +187,7 @@ def get_schedules(whore_username):
 
             for key, value in row.items():
                 if isinstance(value, (datetime, date)):
-                    row[key] = value.strftime('%Y年%m月%d日 %H:%M:%S')
+                    row[key] = value.strftime('%m月%d日 %H:%M')
 
         return jsonify({"code": 200, "data": results, "message": "查询成功！"}), 200
     except mysql.connector.Error as e:
