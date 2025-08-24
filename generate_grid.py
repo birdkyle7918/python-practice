@@ -9,7 +9,7 @@ TARGET_OBSTACLE_RATIO = 0.30
 # 您可以调整圆形的最小和最大半径来改变障碍物的形态
 MIN_RADIUS = 30
 MAX_RADIUS = 250
-OUTPUT_FILENAME = 'obstacle_grid_8000x8000.npz'
+OUTPUT_FILENAME = "obstacle_grid_8000x8000.npz"
 
 
 def create_grid_with_circular_obstacles():
@@ -46,7 +46,7 @@ def create_grid_with_circular_obstacles():
 
             # 4. 计算到圆心的距离并创建掩码
             dist_sq = (sub_yy - center_y) ** 2 + (sub_xx - center_x) ** 2
-            mask = dist_sq <= radius ** 2
+            mask = dist_sq <= radius**2
 
             # 5. 将圆形区域设置为障碍物 (1)
             grid[y_start:y_end, x_start:x_end][mask] = 1
@@ -89,6 +89,6 @@ def main():
     print(f"文件保存成功！ 文件大小: {file_size_mb:.2f} MB")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # 确保在运行前已安装必要的库
     main()

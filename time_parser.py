@@ -15,22 +15,64 @@ class ChineseTimeParser:
         # 时间关键词映射
         self.time_keywords = {
             # 相对时间
-            '今天': 0, '明天': 1, '后天': 2, '昨天': -1, '前天': -2,
-            '今日': 0, '明日': 1,
-
+            "今天": 0,
+            "明天": 1,
+            "后天": 2,
+            "昨天": -1,
+            "前天": -2,
+            "今日": 0,
+            "明日": 1,
             # 星期
-            '这周': 0, '下周': 7, '上周': -7,
-            '周一': 1, '周二': 2, '周三': 3, '周四': 4, '周五': 5, '周六': 6, '周日': 0,
-            '星期一': 1, '星期二': 2, '星期三': 3, '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 0,
-            '礼拜一': 1, '礼拜二': 2, '礼拜三': 3, '礼拜四': 4, '礼拜五': 5, '礼拜六': 6, '礼拜日': 0,
-
+            "这周": 0,
+            "下周": 7,
+            "上周": -7,
+            "周一": 1,
+            "周二": 2,
+            "周三": 3,
+            "周四": 4,
+            "周五": 5,
+            "周六": 6,
+            "周日": 0,
+            "星期一": 1,
+            "星期二": 2,
+            "星期三": 3,
+            "星期四": 4,
+            "星期五": 5,
+            "星期六": 6,
+            "星期日": 0,
+            "礼拜一": 1,
+            "礼拜二": 2,
+            "礼拜三": 3,
+            "礼拜四": 4,
+            "礼拜五": 5,
+            "礼拜六": 6,
+            "礼拜日": 0,
             # 时间段
-            '早上': 8, '上午': 10, '中午': 12, '下午': 14, '晚上': 19, '夜里': 22, '深夜': 23,
-            '凌晨': 2, '清晨': 6, '傍晚': 18, '午夜': 0,
-
+            "早上": 8,
+            "上午": 10,
+            "中午": 12,
+            "下午": 14,
+            "晚上": 19,
+            "夜里": 22,
+            "深夜": 23,
+            "凌晨": 2,
+            "清晨": 6,
+            "傍晚": 18,
+            "午夜": 0,
             # 数字映射
-            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
-            '十一': 11, '十二': 12, '零': 0
+            "一": 1,
+            "二": 2,
+            "三": 3,
+            "四": 4,
+            "五": 5,
+            "六": 6,
+            "七": 7,
+            "八": 8,
+            "九": 9,
+            "十": 10,
+            "十一": 11,
+            "十二": 12,
+            "零": 0,
         }
 
         # 百度API配置（需要申请）
@@ -47,7 +89,7 @@ class ChineseTimeParser:
         params = {
             "grant_type": "client_credentials",
             "client_id": self.baidu_api_key,
-            "client_secret": self.baidu_secret_key
+            "client_secret": self.baidu_secret_key,
         }
 
         try:
@@ -65,26 +107,23 @@ class ChineseTimeParser:
         if not access_token:
             return None
 
-        url = f"https://aip.baidubce.com/rpc/2.0/nlp/v1/lexer?access_token={access_token}"
+        url = (
+            f"https://aip.baidubce.com/rpc/2.0/nlp/v1/lexer?access_token={access_token}"
+        )
 
-        headers = {
-            'Content-Type': 'application/json',
-            'charset': 'UTF-8'
-        }
+        headers = {"Content-Type": "application/json", "charset": "UTF-8"}
 
-        data = {
-            "text": text
-        }
+        data = {"text": text}
 
         try:
             response = requests.post(url, headers=headers, data=json.dumps(data))
             result = response.json()
 
             # 解析API返回的时间信息
-            if 'items' in result:
-                for item in result['items']:
-                    if item.get('pos') == 'TIME':
-                        return self.normalize_time_from_api(item.get('item', ''))
+            if "items" in result:
+                for item in result["items"]:
+                    if item.get("pos") == "TIME":
+                        return self.normalize_time_from_api(item.get("item", ""))
 
         except Exception as e:
             print(f"百度API调用失败: {e}")
@@ -105,10 +144,10 @@ class ChineseTimeParser:
         time_info = self.extract_time_info(text)
         if time_info:
             result_time = result_time.replace(
-                hour=time_info.get('hour', result_time.hour),
-                minute=time_info.get('minute', result_time.minute),
+                hour=time_info.get("hour", result_time.hour),
+                minute=time_info.get("minute", result_time.minute),
                 second=0,
-                microsecond=0
+                microsecond=0,
             )
 
         return result_time
@@ -117,19 +156,32 @@ class ChineseTimeParser:
         """提取日期信息"""
         # 处理相对日期
         for keyword, offset in self.time_keywords.items():
-            if keyword in text and keyword in ['今天', '明天', '后天', '昨天', '前天', '今日', '明日']:
+            if keyword in text and keyword in [
+                "今天",
+                "明天",
+                "后天",
+                "昨天",
+                "前天",
+                "今日",
+                "明日",
+            ]:
                 return base_time + timedelta(days=offset)
 
         # 处理星期
         for keyword, weekday in self.time_keywords.items():
-            if keyword in text and '周' in keyword or '星期' in keyword or '礼拜' in keyword:
+            if (
+                keyword in text
+                and "周" in keyword
+                or "星期" in keyword
+                or "礼拜" in keyword
+            ):
                 days_until = (weekday - base_time.weekday()) % 7
-                if days_until == 0 and '下' in text:
+                if days_until == 0 and "下" in text:
                     days_until = 7
                 return base_time + timedelta(days=days_until)
 
         # 处理具体日期（如：8月10日）
-        date_pattern = r'(\d{1,2})月(\d{1,2})日?'
+        date_pattern = r"(\d{1,2})月(\d{1,2})日?"
         match = re.search(date_pattern, text)
         if match:
             month, day = int(match.group(1)), int(match.group(2))
@@ -150,49 +202,64 @@ class ChineseTimeParser:
 
         # 处理标准时间格式（如：9点30分、21:30）
         time_patterns = [
-            r'(\d{1,2})[：:](\d{2})',  # 21:30 或 21：30
-            r'(\d{1,2})点(\d{1,2})分?',  # 9点30分
-            r'(\d{1,2})点(?!.*分)',  # 9点（没有分钟）
+            r"(\d{1,2})[：:](\d{2})",  # 21:30 或 21：30
+            r"(\d{1,2})点(\d{1,2})分?",  # 9点30分
+            r"(\d{1,2})点(?!.*分)",  # 9点（没有分钟）
         ]
 
         for pattern in time_patterns:
             match = re.search(pattern, text)
             if match:
                 hour = int(match.group(1))
-                minute = int(match.group(2)) if len(match.groups()) > 1 and match.group(2) else 0
+                minute = (
+                    int(match.group(2))
+                    if len(match.groups()) > 1 and match.group(2)
+                    else 0
+                )
 
                 # 处理12小时制
-                if hour <= 12 and ('下午' in text or '晚上' in text or '夜里' in text):
+                if hour <= 12 and ("下午" in text or "晚上" in text or "夜里" in text):
                     if hour != 12:
                         hour += 12
-                elif hour == 12 and ('上午' in text or '早上' in text):
+                elif hour == 12 and ("上午" in text or "早上" in text):
                     hour = 0
 
-                time_info['hour'] = hour
-                time_info['minute'] = minute
+                time_info["hour"] = hour
+                time_info["minute"] = minute
                 return time_info
 
         # 处理时间段关键词
         for keyword, default_hour in self.time_keywords.items():
-            if keyword in text and keyword in ['早上', '上午', '中午', '下午', '晚上', '夜里', '深夜', '凌晨', '清晨',
-                                               '傍晚', '午夜']:
-                time_info['hour'] = default_hour
-                time_info['minute'] = 0
+            if keyword in text and keyword in [
+                "早上",
+                "上午",
+                "中午",
+                "下午",
+                "晚上",
+                "夜里",
+                "深夜",
+                "凌晨",
+                "清晨",
+                "傍晚",
+                "午夜",
+            ]:
+                time_info["hour"] = default_hour
+                time_info["minute"] = 0
                 return time_info
 
         # 处理中文数字
-        chinese_num_pattern = r'([一二三四五六七八九十]+)点'
+        chinese_num_pattern = r"([一二三四五六七八九十]+)点"
         match = re.search(chinese_num_pattern, text)
         if match:
             chinese_hour = match.group(1)
             hour = self.chinese_to_number(chinese_hour)
             if hour is not None:
                 # 处理下午/晚上的时间
-                if hour <= 12 and ('下午' in text or '晚上' in text):
+                if hour <= 12 and ("下午" in text or "晚上" in text):
                     if hour != 12:
                         hour += 12
-                time_info['hour'] = hour
-                time_info['minute'] = 0
+                time_info["hour"] = hour
+                time_info["minute"] = 0
                 return time_info
 
         return time_info if time_info else None
@@ -203,12 +270,12 @@ class ChineseTimeParser:
             return self.time_keywords[chinese_str]
 
         # 处理复合中文数字（如：十一、十二等）
-        if '十' in chinese_str:
-            if chinese_str == '十':
+        if "十" in chinese_str:
+            if chinese_str == "十":
                 return 10
-            elif chinese_str.startswith('十'):
+            elif chinese_str.startswith("十"):
                 return 10 + self.time_keywords.get(chinese_str[1:], 0)
-            elif chinese_str.endswith('十'):
+            elif chinese_str.endswith("十"):
                 return self.time_keywords.get(chinese_str[0], 0) * 10
 
         return None
@@ -231,7 +298,7 @@ class ChineseTimeParser:
             str: 标准时间戳格式 "YYYY-MM-DD HH:MM:SS"
         """
         # 预处理文本
-        text = text.strip().replace(' ', '')
+        text = text.strip().replace(" ", "")
 
         # 优先使用API解析
         if use_api:
@@ -248,11 +315,32 @@ class ChineseTimeParser:
 class SimpleChineseTimeParser:
     def __init__(self):
         self.time_keywords = {
-            '今天': 0, '明天': 1, '后天': 2, '昨天': -1, '前天': -2,
-            '早上': 8, '上午': 10, '中午': 12, '下午': 14, '晚上': 19, '夜里': 22,
-            '凌晨': 2, '傍晚': 18, '午夜': 0,
-            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
-            '十': 10, '十一': 11, '十二': 12
+            "今天": 0,
+            "明天": 1,
+            "后天": 2,
+            "昨天": -1,
+            "前天": -2,
+            "早上": 8,
+            "上午": 10,
+            "中午": 12,
+            "下午": 14,
+            "晚上": 19,
+            "夜里": 22,
+            "凌晨": 2,
+            "傍晚": 18,
+            "午夜": 0,
+            "一": 1,
+            "二": 2,
+            "三": 3,
+            "四": 4,
+            "五": 5,
+            "六": 6,
+            "七": 7,
+            "八": 8,
+            "九": 9,
+            "十": 10,
+            "十一": 11,
+            "十二": 12,
         }
 
     def parse_time(self, text):
@@ -262,13 +350,13 @@ class SimpleChineseTimeParser:
 
         # 处理日期
         for keyword, offset in self.time_keywords.items():
-            if keyword in text and keyword in ['今天', '明天', '后天', '昨天', '前天']:
+            if keyword in text and keyword in ["今天", "明天", "后天", "昨天", "前天"]:
                 result_time = now + timedelta(days=offset)
                 break
 
         # 处理具体时间
         # 匹配 "X点Y分" 或 "X点" 格式
-        time_pattern = r'(\d{1,2}|[一二三四五六七八九十]+)点(\d{1,2}分?)?'
+        time_pattern = r"(\d{1,2}|[一二三四五六七八九十]+)点(\d{1,2}分?)?"
         match = re.search(time_pattern, text)
 
         if match:
@@ -284,26 +372,39 @@ class SimpleChineseTimeParser:
             # 转换分钟
             minute = 0
             if minute_str:
-                minute_num = re.search(r'\d+', minute_str)
+                minute_num = re.search(r"\d+", minute_str)
                 if minute_num:
                     minute = int(minute_num.group())
 
             # 处理12小时制
             if hour <= 12:
-                if '下午' in text or '晚上' in text or '夜里' in text:
+                if "下午" in text or "晚上" in text or "夜里" in text:
                     if hour != 12:
                         hour += 12
-                elif hour == 12 and ('上午' in text or '早上' in text):
+                elif hour == 12 and ("上午" in text or "早上" in text):
                     hour = 0
 
-            result_time = result_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            result_time = result_time.replace(
+                hour=hour, minute=minute, second=0, microsecond=0
+            )
 
         # 处理时间段关键词
         else:
             for keyword, default_hour in self.time_keywords.items():
-                if keyword in text and keyword in ['早上', '上午', '中午', '下午', '晚上', '夜里', '凌晨', '傍晚',
-                                                   '午夜']:
-                    result_time = result_time.replace(hour=default_hour, minute=0, second=0, microsecond=0)
+                if keyword in text and keyword in [
+                    "早上",
+                    "上午",
+                    "中午",
+                    "下午",
+                    "晚上",
+                    "夜里",
+                    "凌晨",
+                    "傍晚",
+                    "午夜",
+                ]:
+                    result_time = result_time.replace(
+                        hour=default_hour, minute=0, second=0, microsecond=0
+                    )
                     break
 
         return result_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -314,12 +415,12 @@ class SimpleChineseTimeParser:
             return self.time_keywords[chinese_str]
 
         # 处理十几的情况
-        if '十' in chinese_str:
-            if chinese_str == '十':
+        if "十" in chinese_str:
+            if chinese_str == "十":
                 return 10
-            elif chinese_str.startswith('十'):
+            elif chinese_str.startswith("十"):
                 return 10 + self.time_keywords.get(chinese_str[1:], 0)
-            elif len(chinese_str) == 2 and chinese_str[1] == '十':
+            elif len(chinese_str) == 2 and chinese_str[1] == "十":
                 return self.time_keywords.get(chinese_str[0], 0) * 10
 
         return int(chinese_str) if chinese_str.isdigit() else 0
@@ -369,9 +470,7 @@ def demo_usage():
     # 使用简化版本（推荐）
     parser = SimpleChineseTimeParser()
 
-    test_cases = [
-        "晚上23点"
-    ]
+    test_cases = ["晚上23点"]
 
     print("=== 中文时间解析演示 ===")
     print(f"当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -388,11 +487,11 @@ class AdvancedChineseTimeParser(SimpleChineseTimeParser):
         super().__init__()
         # 扩展更多时间表达
         self.relative_time_patterns = {
-            r'(\d+)个?小时[后之]后': lambda x: datetime.now() + timedelta(hours=int(x)),
-            r'(\d+)分钟[后之]后': lambda x: datetime.now() + timedelta(minutes=int(x)),
-            r'(\d+)天[后之]后': lambda x: datetime.now() + timedelta(days=int(x)),
-            r'半小时[后之]后': lambda x: datetime.now() + timedelta(minutes=30),
-            r'一刻钟[后之]后': lambda x: datetime.now() + timedelta(minutes=15),
+            r"(\d+)个?小时[后之]后": lambda x: datetime.now() + timedelta(hours=int(x)),
+            r"(\d+)分钟[后之]后": lambda x: datetime.now() + timedelta(minutes=int(x)),
+            r"(\d+)天[后之]后": lambda x: datetime.now() + timedelta(days=int(x)),
+            r"半小时[后之]后": lambda x: datetime.now() + timedelta(minutes=30),
+            r"一刻钟[后之]后": lambda x: datetime.now() + timedelta(minutes=15),
         }
 
     def parse_time(self, text):
@@ -408,8 +507,8 @@ class AdvancedChineseTimeParser(SimpleChineseTimeParser):
                 return result.strftime("%Y-%m-%d %H:%M:%S")
 
         # 处理"半"的情况
-        if '半' in text:
-            text = text.replace('半', '30分')
+        if "半" in text:
+            text = text.replace("半", "30分")
 
         # 回退到基础解析
         return super().parse_time(text)

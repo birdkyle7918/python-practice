@@ -47,6 +47,7 @@ async def parallel_call_network() -> Dict:
 
     return task_map
 
+
 def practice_async():
     start = time.time()
     # 调用主逻辑
@@ -68,6 +69,7 @@ def practice_async():
                 print(f"任务{num}出现未知异常:{ex}")
         else:
             print(f"任务{num}的结果是：{task.result()}")
+
 
 if __name__ == "__main__":
     practice_async()

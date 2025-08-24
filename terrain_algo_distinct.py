@@ -12,28 +12,34 @@ import pyarrow.parquet as pq
 # 读取parquet文件
 def read_map(mapdata):
     table = pq.read_table(mapdata)
-    lons, lats, height = table.column('longitude').to_numpy(), table.column('latitude').to_numpy(), table.column(
-        'elevation').to_numpy()
+    lons, lats, height = (
+        table.column("longitude").to_numpy(),
+        table.column("latitude").to_numpy(),
+        table.column("elevation").to_numpy(),
+    )
     return lons, lats, height
 
+
 # ======================= 【新增】椭圆包含关系检测和去重 =======================
-def is_ellipse_contained(ellipse1: Dict[str, float], ellipse2: Dict[str, float]) -> bool:
+def is_ellipse_contained(
+    ellipse1: Dict[str, float], ellipse2: Dict[str, float]
+) -> bool:
     """
     检查椭圆1是否完全被椭圆2包含
     ellipse1: 被检查的椭圆（可能是小椭圆）
     ellipse2: 检查椭圆（可能是大椭圆）
     """
     # 如果椭圆1的面积大于等于椭圆2，则椭圆1不可能被椭圆2包含
-    if ellipse1['area'] >= ellipse2['area']:
+    if ellipse1["area"] >= ellipse2["area"]:
         return False
 
     # 检查椭圆1的边界点是否都在椭圆2内部
     # 采样椭圆1边界上的多个点进行检测
-    center1_lon, center1_lat = ellipse1['center_lon'], ellipse1['center_lat']
-    a1, b1 = ellipse1['a_lon'], ellipse1['b_lat']
+    center1_lon, center1_lat = ellipse1["center_lon"], ellipse1["center_lat"]
+    a1, b1 = ellipse1["a_lon"], ellipse1["b_lat"]
 
-    center2_lon, center2_lat = ellipse2['center_lon'], ellipse2['center_lat']
-    a2, b2 = ellipse2['a_lon'], ellipse2['b_lat']
+    center2_lon, center2_lat = ellipse2["center_lon"], ellipse2["center_lat"]
+    a2, b2 = ellipse2["a_lon"], ellipse2["b_lat"]
 
     # 生成椭圆1边界上的采样点
     angles = np.linspace(0, 2 * np.pi, 36)  # 36个采样点
@@ -43,7 +49,7 @@ def is_ellipse_contained(ellipse1: Dict[str, float], ellipse2: Dict[str, float])
     # 检查这些边界点是否都在椭圆2内部
     relative_lons = boundary_lons - center2_lon
     relative_lats = boundary_lats - center2_lat
-    ellipse2_equation = (relative_lons ** 2 / a2 ** 2) + (relative_lats ** 2 / b2 ** 2)
+    ellipse2_equation = (relative_lons**2 / a2**2) + (relative_lats**2 / b2**2)
 
     # 如果所有边界点都在椭圆2内部（<=1），则椭圆1被椭圆2包含
     return np.all(ellipse2_equation <= 1.0)
@@ -103,12 +109,10 @@ def get_ellipse_original_points(lons, lats, heights, height_threshold):
         binary_grid[lat_idx, lon_idx] = 1
 
     # 使用四连通规则，找出二进制表格上所有互相连接的 1 的区域
-    four_connectivity_structure = np.array([
-        [0, 1, 0],
-        [1, 1, 1],
-        [0, 1, 0]
-    ])
-    labeled_grid, labeled_grid_slice_count = label(binary_grid, structure=four_connectivity_structure)
+    four_connectivity_structure = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+    labeled_grid, labeled_grid_slice_count = label(
+        binary_grid, structure=four_connectivity_structure
+    )
 
     slices = find_objects(labeled_grid)
 
@@ -152,17 +156,16 @@ def get_ellipse_original_points(lons, lats, heights, height_threshold):
 
         # ======================= 【新增】将椭圆信息存储到列表中 =======================
         ellipse_info_dict = {
-            'center_lon': center_lon,
-            'center_lat': center_lat,
-            'a_lon': a_lon,
-            'b_lat': b_lat,
-            'area': np.pi * a_lon * b_lat  # 椭圆面积，用于排序
+            "center_lon": center_lon,
+            "center_lat": center_lat,
+            "a_lon": a_lon,
+            "b_lat": b_lat,
+            "area": np.pi * a_lon * b_lat,  # 椭圆面积，用于排序
         }
         ellipse_info_list.append(ellipse_info_dict)
 
-
     # 按面积从小到大排序，优先检查小椭圆
-    ellipse_info_list.sort(key=lambda x: x['area'])
+    ellipse_info_list.sort(key=lambda x: x["area"])
 
     # 双层循环标记需要保留的有效椭圆
     valid_ellipses = []
@@ -187,22 +190,24 @@ def get_ellipse_original_points(lons, lats, heights, height_threshold):
 
     # 遍历每个有效的椭圆
     for ellipse_info_dict in valid_ellipses:
-        center_lon = ellipse_info_dict['center_lon']
-        center_lat = ellipse_info_dict['center_lat']
-        a_lon = ellipse_info_dict['a_lon']
-        b_lat = ellipse_info_dict['b_lat']
+        center_lon = ellipse_info_dict["center_lon"]
+        center_lat = ellipse_info_dict["center_lat"]
+        a_lon = ellipse_info_dict["a_lon"]
+        b_lat = ellipse_info_dict["b_lat"]
 
         # 计算所有原始点到椭圆中心的相对坐标
         relative_lons = lons - center_lon
         relative_lats = lats - center_lat
 
         # 计算椭圆方程的左侧值
-        ellipse_equation_lhs = (relative_lons ** 2 / a_lon ** 2) + (relative_lats ** 2 / b_lat ** 2)
+        ellipse_equation_lhs = (relative_lons**2 / a_lon**2) + (
+            relative_lats**2 / b_lat**2
+        )
 
         # 筛选出距离小于等于椭圆方程左侧值小于等于1的点，也就是在椭圆内的点
         # 同样筛选靠近边界的环带
-        condition_1 = (ellipse_equation_lhs <= 1.03)
-        condition_2 = (ellipse_equation_lhs >= 0.97)
+        condition_1 = ellipse_equation_lhs <= 1.03
+        condition_2 = ellipse_equation_lhs >= 0.97
         in_ellipse_indices = np.where(condition_1 & condition_2)[0]
 
         # 提取被当前圆圈选中的原始经度点和纬度点
@@ -223,12 +228,11 @@ def get_ellipse_original_points(lons, lats, heights, height_threshold):
     return lons_in_ellipse_result, lats_in_ellipse_result, heights_in_ellipse_result
 
 
-
 if __name__ == "__main__":
 
     # 文件路径
-    folder_path = sys.path[0] + "/" + 'Input'
-    mapdata = folder_path + '/' + "geotiff_coordinates.parquet"
+    folder_path = sys.path[0] + "/" + "Input"
+    mapdata = folder_path + "/" + "geotiff_coordinates.parquet"
 
     map_lons, map_lats, map_heights = read_map(mapdata)
 
@@ -238,7 +242,9 @@ if __name__ == "__main__":
         print(f"现在处理的高度是 {height_threshold}--------------")
 
         # 获取圈选的坐标数据
-        lons_in_shape, lats_in_shape, heights_in_shape = get_ellipse_original_points(map_lons, map_lats, map_heights, height_threshold)
+        lons_in_shape, lats_in_shape, heights_in_shape = get_ellipse_original_points(
+            map_lons, map_lats, map_heights, height_threshold
+        )
 
         display_terrain_list = []
         for lon, lat, height in zip(lons_in_shape, lats_in_shape, heights_in_shape):
@@ -246,17 +252,24 @@ if __name__ == "__main__":
             display_terrain_list.append(temp_terrain_list)
 
         # 创建目录
-        path_to_create = file = sys.path[0] + "/" + 'Output' + "/" + date_str
+        path_to_create = file = sys.path[0] + "/" + "Output" + "/" + date_str
         if not os.path.exists(path_to_create):
             os.mkdir(path_to_create)
 
         # 写入文件
-        display_terrain_file = path_to_create + "/" + "terrain_" + str(height_threshold) + "m" + "_" + date_str + ".json"
+        display_terrain_file = (
+            path_to_create
+            + "/"
+            + "terrain_"
+            + str(height_threshold)
+            + "m"
+            + "_"
+            + date_str
+            + ".json"
+        )
         try:
-            with open(display_terrain_file, 'w', encoding='utf-8') as f:
-                json.dump(display_terrain_list, f, indent=None, separators=(',', ':'))
+            with open(display_terrain_file, "w", encoding="utf-8") as f:
+                json.dump(display_terrain_list, f, indent=None, separators=(",", ":"))
             print(f"地形数据成功保存为文件 '{display_terrain_file}'")
         except IOError as e:
             print(f"写入文件时发生错误: {e}")
-
-
