@@ -1,9 +1,8 @@
-import requests
 import json
 import re
 from datetime import datetime, timedelta
-import jieba
-import jieba.posseg as pseg
+
+import requests
 
 
 class ChineseTimeParser:

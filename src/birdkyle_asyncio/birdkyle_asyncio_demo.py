@@ -2,7 +2,7 @@ import asyncio
 import random
 import time
 from typing import Dict
-from birdkyle_exception.birdkyle_custom_exception import MyCustomException
+from src.birdkyle_exception.birdkyle_custom_exception import MyCustomException
 
 
 # 练习并发协程

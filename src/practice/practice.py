@@ -7,7 +7,7 @@ import numpy.typing as npt
 from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
 
-from birdkyle_exception.birdkyle_custom_exception import MyCustomException
+from src.birdkyle_exception.birdkyle_custom_exception import MyCustomException
 from typing import Annotated  # Python 3.9+
 from collections import defaultdict
 from scipy.ndimage import binary_dilation  # 导入膨胀函数
@@ -509,7 +509,7 @@ def show_grid_high_clarity_overview():
     # 1. 加载.npz文件 (您的原始逻辑)
     # 为了让代码可以运行，我们先创建一个模拟文件
     try:
-        data = np.load("obstacle_grid_6000x6000.npz")
+        data = np.load("../algo/obstacle_grid_6000x6000.npz")
         print("已成功加载文件。")
     except FileNotFoundError:
         print("未找到，正在创建模拟数据文件...")
