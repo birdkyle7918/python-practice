@@ -1,3 +1,6 @@
+"""
+圈出高于某个阈值高度的障碍物形状
+"""
 import datetime
 import json
 import os
