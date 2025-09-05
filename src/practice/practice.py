@@ -7,7 +7,6 @@ import numpy.typing as npt
 from matplotlib.colors import ListedColormap
 from numpy.typing import NDArray
 
-from src.birdkyle_exception.birdkyle_custom_exception import MyCustomException
 from typing import Annotated  # Python 3.9+
 from collections import defaultdict
 from scipy.ndimage import binary_dilation  # 导入膨胀函数
@@ -239,23 +238,7 @@ def practice_logging():
     logger.warning("警告")
 
 
-# 练习异常处理
-def example_exception_function(value):
-    if value < 0:
-        raise MyCustomException("输入值不能为负数！")
-    elif value == 0:
-        raise MyCustomException("输入值不能为零！请提供一个正数。")
-    else:
-        print(f"输入值为: {value}")
 
-
-def practice_my_exception():
-    try:
-        example_exception_function(-5)
-    except MyCustomException as e:
-        print(f"捕获到自定义异常: {e}")
-    except Exception as e:
-        print(f"捕获到其他异常: {e}")
 
 
 # 练习不定参数

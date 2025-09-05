@@ -8,7 +8,7 @@ import httpx
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
-from src.tg_bot.time_parser import SimpleChineseTimeParser
+from time_parser import SimpleChineseTimeParser
 
 # -------------------------------------------------配置--------------------------------------------------
 # 从环境变量中读取你的 Telegram Bot Token
