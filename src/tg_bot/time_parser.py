@@ -425,43 +425,6 @@ class SimpleChineseTimeParser:
         return int(chinese_str) if chinese_str.isdigit() else 0
 
 
-# 使用腾讯云API的版本
-class TencentTimeParser:
-    def __init__(self, secret_id, secret_key):
-        """
-        使用腾讯云NLP API解析时间
-        需要申请腾讯云API密钥
-        """
-        self.secret_id = secret_id
-        self.secret_key = secret_key
-        self.endpoint = "nlp.tencentcloudapi.com"
-
-    def parse_time_with_tencent(self, text):
-        """使用腾讯云API解析时间"""
-        try:
-            # 这里需要安装 tencentcloud-sdk-python
-            # pip install tencentcloud-sdk-python
-            from tencentcloud.common import credential
-            from tencentcloud.common.profile.client_profile import ClientProfile
-            from tencentcloud.nlp.v20190408 import nlp_client, models
-
-            cred = credential.Credential(self.secret_id, self.secret_key)
-            client = nlp_client.NlpClient(cred, "ap-beijing")
-
-            req = models.ParseWordsRequest()
-            req.Text = text
-
-            resp = client.ParseWords(req)
-
-            # 解析返回结果中的时间信息
-            # 需要根据API具体返回格式进行处理
-            return self.extract_time_from_tencent_result(resp)
-
-        except Exception as e:
-            print(f"腾讯云API调用失败: {e}")
-            return None
-
-
 # 示例使用代码
 def demo_usage():
     """演示如何使用时间解析器"""

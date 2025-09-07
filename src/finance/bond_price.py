@@ -4,8 +4,6 @@ old_interest_rate：老利率，当初发行时的票面利率
 new_interest_rate：新利率，当前发行同一张债券的利率
 remain_time：当初的债券剩余的到期时间，以年为单位
 """
-
-
 def calculate_current_bond_price(old_interest_rate, new_interest_rate, remain_time):
 
     # 剩余的小数部分
@@ -37,5 +35,5 @@ def calculate_current_bond_price(old_interest_rate, new_interest_rate, remain_ti
 
 
 if __name__ == "__main__":
-    calculate_current_bond_price(0.0333, 0.02, 27.5)
+    calculate_current_bond_price(0.0333, 0.03, 27.5)
     pass
