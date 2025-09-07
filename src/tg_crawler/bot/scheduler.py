@@ -1,4 +1,6 @@
 import logging
+from typing import Sequence
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.future import select
 
@@ -13,7 +15,7 @@ async def check_groups_for_new_messages():
     logger.info("定时任务启动：检查群组新消息...")
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(MonitoredGroup))
-        groups = result.scalars().all()
+        groups: Sequence[MonitoredGroup] = result.scalars().all()
 
         sub_result = await session.execute(select(Subscriber))
         subscribers = sub_result.scalars().all()
