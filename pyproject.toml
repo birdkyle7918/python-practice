@@ -123,7 +123,8 @@ dependencies = [
     "aiomysql (>=0.2.0,<0.3.0)",
     "apscheduler (>=3.11.0,<4.0.0)",
     "python-dotenv (>=1.1.1,<2.0.0)",
-    "pymysql (>=1.1.2,<2.0.0)"
+    "pymysql (>=1.1.2,<2.0.0)",
+    "pylint (>=3.3.8,<4.0.0)"
 ]
 
 
