@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from src.tg_crawler.api import groups
 from src.tg_crawler.bot.bot_instance import telegram_app
 
+from src.tg_crawler.bot.scheduler import scheduler
+
 # 配置日志
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -22,6 +24,8 @@ async def lifespan(app: FastAPI):
     # === 应用启动时执行 ===
     await telegram_app.initialize()  # 初始化 bot application
     await telegram_app.start()  # 启动 polling (在后台运行，非阻塞)
+    await scheduler.start()
+    print("调度器已启动。")
 
     print("FastAPI app started with Telegram Bot.")
 
