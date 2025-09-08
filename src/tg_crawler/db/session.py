@@ -1,8 +1,7 @@
-from sqlalchemy import Engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
-from sqlalchemy.ext.asyncio.base import ProxyComparable
-from sqlalchemy.orm import sessionmaker
 from typing import Callable
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from src.tg_crawler.config import settings
 
