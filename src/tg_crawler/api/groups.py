@@ -8,7 +8,7 @@ from src.tg_crawler.db.session import get_db
 
 router = APIRouter()
 
-@router.post("/groups", response_model=schemas.Group, summary="添加一个监控群组")
+@router.post("/", response_model=schemas.Group, summary="添加一个监控群组")
 async def create_group(group: schemas.GroupCreate, db: AsyncSession = Depends(get_db)):
     db_group = models.MonitoredGroup(group_id=group.group_id, group_name=group.group_name)
     db.add(db_group)
@@ -20,7 +20,7 @@ async def create_group(group: schemas.GroupCreate, db: AsyncSession = Depends(ge
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Group with ID {group.group_id} already exists.")
 
-@router.get("/groups", response_model=list[schemas.Group], summary="获取所有监控群组")
+@router.get("/", response_model=list[schemas.Group], summary="获取所有监控群组")
 async def read_groups(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.MonitoredGroup).offset(skip).limit(limit))
     return result.scalars().all()
