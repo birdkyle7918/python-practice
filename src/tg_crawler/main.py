@@ -1,12 +1,10 @@
 import logging
-import asyncio
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from src.tg_crawler.api import groups
-from src.tg_crawler.bot.scheduler import scheduler
 from src.tg_crawler.bot.bot_instance import telegram_app
-from src.tg_crawler.bot.handlers import register_handlers
 
 # 配置日志
 logging.basicConfig(
@@ -18,24 +16,22 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 应用启动时执行
-    logger.info("应用启动...")
+    """
+    在应用启动时初始化并启动 Telegram Bot，在应用关闭时停止它。
+    """
+    # === 应用启动时执行 ===
+    await telegram_app.initialize()  # 初始化 bot application
+    await telegram_app.start()  # 启动 polling (在后台运行，非阻塞)
 
-    # 注册Bot命令
-    register_handlers()
+    print("FastAPI app started with Telegram Bot.")
 
-    # 启动定时任务
-    scheduler.start()
+    yield  # yield 之前的代码在启动时运行，之后的在关闭时运行
 
-    # 在后台任务中运行Telegram Bot的轮询
-    asyncio.create_task(telegram_app.run_polling())
-
-    logger.info("所有服务已启动。")
-    yield
-    # 应用关闭时执行
-    logger.info("应用关闭...")
-    scheduler.shutdown()
-    logger.info("定时任务已关闭。")
+    # === 应用关闭时执行 ===
+    print("Stopping Telegram Bot...")
+    await telegram_app.stop()  # 停止 polling
+    await telegram_app.shutdown()  # 清理 bot application 资源
+    print("Telegram Bot stopped.")
 
 
 # 创建FastAPI应用
