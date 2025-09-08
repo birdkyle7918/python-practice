@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     # === 应用启动时执行 ===
     await telegram_app.initialize()  # 初始化 bot application
     await telegram_app.start()  # 启动 polling (在后台运行，非阻塞)
-    await scheduler.start()
+    # await scheduler.start()
     print("调度器已启动。")
 
     print("FastAPI app started with Telegram Bot.")
