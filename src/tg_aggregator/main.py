@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import os
-import sys
 from contextlib import asynccontextmanager
 from logging.handlers import TimedRotatingFileHandler
 from typing import List
@@ -145,7 +144,7 @@ async def aggregate_messages():
 # --- FastAPI 生命周期事件 (使用 Lifespan) ---
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(fastapi_app: FastAPI):
     # 应用启动时执行
     logger.info("应用启动...")
     try:
