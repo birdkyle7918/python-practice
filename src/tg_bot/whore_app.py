@@ -45,14 +45,19 @@ logger.addHandler(handler)
 # ------------------- 配置 -----------------------------
 app = Flask(__name__)
 
+DB_USERNAME = os.getenv("DB_USERNAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_DATABASE = os.getenv("DB_DATABASE")
+DB_HOST = os.getenv("DB_HOST")
+
+
 # --- 数据库连接池配置 ---
 # 请替换为您的数据库连接信息
 DB_CONFIG = {
-    "host": "149.104.18.215",
-    "user": "tguser",  # 替换为您的 MySQL 用户名
+    "host": "127.0.0.1",
+    "user": DB_USERNAME,  # 替换为您的 MySQL 用户名
     "password": DB_PASSWORD,  # 替换为您的 MySQL 密码
-    "database": "tg",  # 替换为您的数据库名
+    "database": DB_DATABASE,  # 替换为您的数据库名
     "pool_name": "mypool",  # 连接池名称
     "pool_size": 10,  # 连接池大小，建议根据应用负载调整
 }
