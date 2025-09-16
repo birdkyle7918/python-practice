@@ -64,7 +64,7 @@ scheduler = AsyncIOScheduler()
 
 # --- 核心业务逻辑 ---
 
-def process_message_text(original_text: str, channel_name: str) -> str:
+def process_message_text(original_text: str, channel_name: str, channel_id: str) -> str:
     """
     处理转发内容的文本。
     这是您需要根据自己需求定制化处理的地方。
@@ -72,7 +72,7 @@ def process_message_text(original_text: str, channel_name: str) -> str:
     if not original_text:
         return ""
 
-    processed_text = f"{original_text}\n\n---\n*来自频道*: `{channel_name}`"
+    processed_text = f"{original_text}\n\n---\n*来自频道*: `{channel_name} {channel_id}`"
     return processed_text
 
 
@@ -105,38 +105,42 @@ async def aggregate_messages():
         active_channels = crud.get_active_channels(db)
         logger.info(f"找到 {len(active_channels)} 个启用的频道进行处理。")
 
-        for channel in active_channels:
-            logger.info(f"正在处理频道: {channel.channel_name or channel.channel_identifier}")
+        for channel_in_db in active_channels:
+            logger.info(f"正在处理频道: {channel_in_db.channel_name or channel_in_db.channel_identifier}")
             try:
-                channel_entity = await client.get_entity(channel.channel_identifier)
-                channel_title = channel_entity.title
+                channel_entity = await client.get_entity(channel_in_db.channel_identifier)
+                channel_title = channel_in_db.channel_name
+                channel_id = channel_in_db.channel_identifier
                 messages = await client.get_messages(
                     channel_entity,
                     limit=1
                 )
                 messages.reverse()
-                new_last_id = channel.last_processed_message_id
+                # 原本的last_id从数据库里读
+                last_id = channel_in_db.last_processed_message_id
 
                 for temp_message in messages:
                     if not temp_message.message:
-                        new_last_id = temp_message.id
+                        # last_id更新为群组消息的最后一条的id
+                        last_id = temp_message.id
                         continue
 
-                    forward_text = process_message_text(temp_message.message, channel_title)
-                    logger.info(f"准备转发消息 {forward_text}")
-                    await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
-                    logger.info(f"已经转发消息 {forward_text}")
-                    new_last_id = temp_message.id
-                    await asyncio.sleep(1)
+                    # 如果群组最后一条id比数据库里的小，则不处理
+                    if last_id <= channel_in_db.last_processed_message_id:
+                        continue
 
-                if new_last_id > channel.last_processed_message_id:
-                    crud.update_last_processed_id(db, channel_id=channel.id, message_id=new_last_id)
+                    # 否则需要更新消息id
+                    forward_text = process_message_text(temp_message.message, channel_title, channel_id)
+                    await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
+                    new_last_id = temp_message.id
+                    await asyncio.sleep(2)
+                    crud.update_last_processed_id(db, channel_id=channel_in_db.id, message_id=new_last_id)
                     logger.info(f"频道 '{channel_title}' 的最新消息ID更新为: {new_last_id}")
 
             except (ChannelPrivateError, ValueError, ChannelInvalidError) as e:
-                logger.error(f"错误：无法访问频道 {channel.channel_identifier}。可能是私有频道、无效用户名或您未加入。", e, exc_info=True)
+                logger.error(f"错误：无法访问频道 {channel_in_db.channel_identifier}。可能是私有频道、无效用户名或您未加入。", e, exc_info=True)
             except Exception as e:
-                logger.error(f"处理频道 {channel.channel_identifier} 时发生未知错误", e, exc_info=True)
+                logger.error(f"处理频道 {channel_in_db.channel_identifier} 时发生未知错误", e, exc_info=True)
     finally:
         db.close()
     logger.info("定时任务执行: 消息聚合结束。")
