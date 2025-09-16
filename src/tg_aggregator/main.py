@@ -109,7 +109,7 @@ async def aggregate_messages():
             logger.info(f"正在处理频道: {channel_in_db.channel_name or channel_in_db.channel_identifier}")
             try:
                 channel_entity = await client.get_entity(channel_in_db.channel_identifier)
-                channel_title = channel_in_db.channel_name
+                channel_title = channel_in_db.channel_name or channel_in_db.channel_identifier
                 channel_id = channel_in_db.channel_identifier
                 messages = await client.get_messages(
                     channel_entity,
@@ -131,7 +131,9 @@ async def aggregate_messages():
 
                     # 否则需要更新消息id
                     forward_text = process_message_text(temp_message.message, channel_title, channel_id)
+                    logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时准备转发消息")
                     await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
+                    logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时已经转发消息")
                     new_last_id = temp_message.id
                     await asyncio.sleep(2)
                     crud.update_last_processed_id(db, channel_id=channel_in_db.id, message_id=new_last_id)
