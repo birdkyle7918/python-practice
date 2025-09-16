@@ -72,7 +72,10 @@ def process_message_text(original_text: str, channel_name: str, channel_id: str)
     if not original_text:
         return ""
 
-    processed_text = f"{original_text}\n\n---\n*来自频道*: `{channel_name} {channel_id}`"
+    # 去除@
+    channel_id = str.replace(channel_id, "@", "", 1)
+
+    processed_text = f"{original_text}\n\n---\n*来自频道*: `{channel_name} https://t.me/{channel_id}`"
     return processed_text
 
 
