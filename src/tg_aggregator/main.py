@@ -119,6 +119,7 @@ async def aggregate_messages():
                 new_last_id = channel.last_processed_message_id
 
                 for temp_message in messages:
+                    logger.info(f"temp_message.message {temp_message.message}")
                     if not temp_message.message:
                         new_last_id = temp_message.id
                         continue
