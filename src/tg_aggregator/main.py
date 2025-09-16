@@ -112,8 +112,7 @@ async def aggregate_messages():
                 channel_title = channel_entity.title
                 messages = await client.get_messages(
                     channel_entity,
-                    min_id=channel.last_processed_message_id,
-                    limit=100
+                    limit=5
                 )
                 messages.reverse()
                 new_last_id = channel.last_processed_message_id
