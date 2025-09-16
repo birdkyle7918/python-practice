@@ -131,7 +131,7 @@ async def aggregate_messages():
                     # 否则需要转发消息
                     forward_text = process_message_text(temp_message.message, channel_title, channel_id)
                     logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时准备转发消息")
-                    await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='text')
+                    await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode=None)
                     logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时已经转发消息")
                     await asyncio.sleep(2)
 
