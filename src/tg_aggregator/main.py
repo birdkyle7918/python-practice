@@ -117,16 +117,16 @@ async def aggregate_messages():
                 )
                 messages.reverse()
                 # 原本的last_id从数据库里读
-                last_id = channel_in_db.last_processed_message_id
+                new_last_id = channel_in_db.last_processed_message_id
 
                 for temp_message in messages:
                     if not temp_message.message:
                         # last_id更新为群组消息的最后一条的id
-                        last_id = temp_message.id
+                        new_last_id = temp_message.id
                         continue
 
                     # 如果群组最后一条id比数据库里的小，则不处理
-                    if last_id <= channel_in_db.last_processed_message_id:
+                    if new_last_id <= channel_in_db.last_processed_message_id:
                         continue
 
                     # 否则需要更新消息id
