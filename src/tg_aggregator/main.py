@@ -112,8 +112,9 @@ async def aggregate_messages():
                 channel_title = channel_entity.title
                 messages = await client.get_messages(
                     channel_entity,
-                    limit=5
+                    limit=1
                 )
+                logger.info(f"频道 {channel.channel_name or channel.channel_identifier} 获取到消息 {messages}")
                 messages.reverse()
                 new_last_id = channel.last_processed_message_id
 
@@ -124,6 +125,7 @@ async def aggregate_messages():
 
                     forward_text = process_message_text(message.text, channel_title)
                     await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
+                    logger.info(f"转发消息 {forward_text}")
                     new_last_id = message.id
                     await asyncio.sleep(1)
 
