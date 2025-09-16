@@ -114,19 +114,18 @@ async def aggregate_messages():
                     channel_entity,
                     limit=1
                 )
-                logger.info(f"频道 {channel.channel_name or channel.channel_identifier} 获取到消息 {messages}")
                 messages.reverse()
                 new_last_id = channel.last_processed_message_id
 
                 for temp_message in messages:
-                    logger.info(f"temp_message.message {temp_message.message}")
                     if not temp_message.message:
                         new_last_id = temp_message.id
                         continue
 
                     forward_text = process_message_text(temp_message.message, channel_title)
+                    logger.info(f"准备转发消息 {forward_text}")
                     await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
-                    logger.info(f"转发消息 {forward_text}")
+                    logger.info(f"已经转发消息 {forward_text}")
                     new_last_id = temp_message.id
                     await asyncio.sleep(1)
 
