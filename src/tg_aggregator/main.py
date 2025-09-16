@@ -116,28 +116,27 @@ async def aggregate_messages():
                     limit=1
                 )
                 messages.reverse()
-                # 原本的last_id从数据库里读
-                new_last_id = channel_in_db.last_processed_message_id
 
                 for temp_message in messages:
                     if not temp_message.message:
-                        # last_id更新为群组消息的最后一条的id
-                        new_last_id = temp_message.id
+                        logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时没有message")
                         continue
 
                     # 如果群组最后一条id比数据库里的小，则不处理
-                    if new_last_id <= channel_in_db.last_processed_message_id:
+                    if temp_message.id <= channel_in_db.last_processed_message_id:
+                        logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时，已经达到最新消息状态")
                         continue
 
-                    # 否则需要更新消息id
+                    # 否则需要转发消息
                     forward_text = process_message_text(temp_message.message, channel_title, channel_id)
                     logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时准备转发消息")
                     await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
                     logger.info(f"处理 {channel_in_db.channel_name or channel_in_db.channel_identifier} 时已经转发消息")
-                    new_last_id = temp_message.id
                     await asyncio.sleep(2)
-                    crud.update_last_processed_id(db, channel_id=channel_in_db.id, message_id=new_last_id)
-                    logger.info(f"频道 '{channel_title}' 的最新消息ID更新为: {new_last_id}")
+
+                    # 然后更新消息id
+                    crud.update_last_processed_id(db, channel_id=channel_in_db.id, message_id=temp_message.id)
+                    logger.info(f"频道 '{channel_title}' 的最新消息ID更新为: {temp_message.id}")
 
             except (ChannelPrivateError, ValueError, ChannelInvalidError) as e:
                 logger.error(f"错误：无法访问频道 {channel_in_db.channel_identifier}。可能是私有频道、无效用户名或您未加入。", e, exc_info=True)
