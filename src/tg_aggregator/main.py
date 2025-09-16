@@ -118,15 +118,15 @@ async def aggregate_messages():
                 messages.reverse()
                 new_last_id = channel.last_processed_message_id
 
-                for message in messages:
-                    if not message.text:
-                        new_last_id = message.id
+                for temp_message in messages:
+                    if not temp_message.message:
+                        new_last_id = temp_message.id
                         continue
 
-                    forward_text = process_message_text(message.text, channel_title)
+                    forward_text = process_message_text(temp_message.message, channel_title)
                     await client.send_message(settings.DESTINATION_CHANNEL_ID, forward_text, parse_mode='md')
                     logger.info(f"转发消息 {forward_text}")
-                    new_last_id = message.id
+                    new_last_id = temp_message.id
                     await asyncio.sleep(1)
 
                 if new_last_id > channel.last_processed_message_id:
