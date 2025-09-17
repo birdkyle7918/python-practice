@@ -370,7 +370,7 @@ def insert_user_info(user: User) -> int:
         raise ValueError("User and user_id cannot be empty.")  # 使用更具体的异常类型
 
     row_added = 0
-    sql = "INSERT IGNORE INTO user_info (user_id) VALUES (%s)"
+    sql = "INSERT IGNORE INTO user_info_for_whore (user_id) VALUES (%s)"
 
     try:
         # 使用 'with' 语句自动管理连接和游标的关闭
