@@ -1,0 +1,30 @@
+# docker-compose.yml
+
+# 指定 docker-compose 文件版本
+version: '3.8'
+
+# 定义服务
+services:
+  # 您的应用服务名，可以自定义
+  whore_app:
+    # 镜像名称和版本，对应 docker run 中的 whore_app:v3
+    image: whore_app:v3
+
+    # 容器名称，对应 --name whore_app
+    container_name: whore_app
+
+    # 重启策略，对应 --restart always
+    restart: always
+
+    # 端口映射，对应 -p 8848:8848
+    ports:
+      - "8848:8848"
+
+    # 加载环境变量文件，对应 --env-file ./.env
+    env_file:
+      - ./.env
+
+    # 添加 host 映射，对应 --add-host "host.docker.internal:host-gateway"
+    # 这是让容器能够通过 host.docker.internal 访问宿主机的关键
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
