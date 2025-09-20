@@ -25,7 +25,7 @@ COPY pyproject.toml poetry.lock ./
 # 7. 安装项目依赖
 # --no-dev 表示不安装开发依赖
 # --no-root 表示不安装项目本身，因为我们会通过 COPY 指令复制源码
-RUN poetry install --no-interaction --no-ansi --no-dev --no-root
+RUN poetry install --no-interaction --no-ansi --no-root
 
 # 8. 复制你的项目源代码到工作目录
 # 根据你的 systemd 配置，你的应用代码应该在 src/tg_bot 目录下
