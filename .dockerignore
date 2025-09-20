@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Poetry/Python 虚拟环境
+.venv
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE 和系统文件
+.idea/
+.vscode/
+*.DS_Store
+
+# Poetry build artifacts
+dist/
