@@ -17,3 +17,6 @@ __pycache__/
 
 # Poetry build artifacts
 dist/
+
+# env
+.env
