@@ -54,7 +54,7 @@ DB_HOST = os.getenv("DB_HOST")
 # --- 数据库连接池配置 ---
 # 请替换为您的数据库连接信息
 DB_CONFIG = {
-    "host": "127.0.0.1",
+    "host": DB_HOST,
     "user": DB_USERNAME,  # 替换为您的 MySQL 用户名
     "password": DB_PASSWORD,  # 替换为您的 MySQL 密码
     "database": DB_DATABASE,  # 替换为您的数据库名
@@ -67,7 +67,7 @@ DB_CONFIG = {
 REDIS_PASSWORD = ""
 try:
     redis_pool = redis.ConnectionPool(
-        host="127.0.0.1",
+        host=DB_HOST,
         port=6379,
         db=0,
         password=REDIS_PASSWORD,
