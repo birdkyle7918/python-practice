@@ -8,7 +8,7 @@ services:
   # 您的应用服务名，可以自定义
   whore_app:
     # 镜像名称和版本，对应 docker run 中的 whore_app:v3
-    image: whore_app:v3
+    image: birdkyle/whore_app:v4
 
     # 容器名称，对应 --name whore_app
     container_name: whore_app
