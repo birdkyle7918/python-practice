@@ -1,0 +1,36 @@
+# 1. 选择一个轻量且官方的 Python 基础镜像
+# 建议指定具体版本，例如 3.11, 3.10 等
+FROM python:3.13.1-slim
+
+# 2. 设置推荐的环境变量
+# PYTHONUNBUFFERED: 确保 Python 输出直接发送到终端，方便在 Docker 日志中查看
+# PYTHONDONTWRITEBYTECODE: 防止 Python 写入 .pyc 文件
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# 3. 设置工作目录
+# 之后的所有命令都将在这个目录下执行
+WORKDIR /app
+
+# 4. 安装 Poetry
+RUN pip install poetry
+RUN poetry config virtualenvs.create false
+
+# 5. 复制依赖定义文件
+# 只复制这两个文件，利用 Docker 的层缓存机制。
+# 只要这两个文件不变，下面的安装步骤就不会重复执行，从而加快构建速度。
+COPY pyproject.toml poetry.lock ./
+
+# 6. 安装项目依赖
+# --no-dev: 不安装开发依赖
+# --no-interaction: 非交互模式
+# --no-ansi: 干净的日志输出
+RUN poetry install --no-interaction --no-ansi --no-root
+
+# 7. 复制你的应用源代码
+# 这里我们假设你的代码都在 src 目录下
+COPY ./src/tg_bot .
+
+# 8. 容器启动时要执行的命令
+# 这相当于你 systemd 文件中的 ExecStart
+CMD ["python", "bot_service.py"]

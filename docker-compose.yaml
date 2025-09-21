@@ -28,3 +28,22 @@ services:
     # 这是让容器能够通过 host.docker.internal 访问宿主机的关键
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  tg_bot:
+    # 给镜像起个名字
+    image: birdkyle/tg_bot:latest
+    # container_name: 给容器起个固定的名字
+    container_name: tg_bot
+
+    # restart: always 等同于 systemd 中的 Restart=always
+    restart: always
+
+    # env_file: 读取 .env 文件中的所有变量并注入到容器中
+    # 这等同于 systemd 中的 Environment=...
+    env_file:
+      - .env
+
+    # extra_hosts: 这是为了确保 host.docker.internal 能够被正确解析
+    # 它会将 host.docker.internal 指向宿主机的 IP 地址
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
