@@ -2,7 +2,7 @@
 import json
 import logging
 import os
-from logging.handlers import TimedRotatingFileHandler
+import sys
 
 import httpx
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, KeyboardButtonRequestUsers
@@ -25,37 +25,18 @@ BACKEND_API_URL_DELETE_SCHEDULE = "https://whore-bot.birdkyle7918.com/schedule"
 
 
 # -------------------------------------------------日志--------------------------------------------------
-log_dir = 'logs'
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-log_filename = os.path.join(log_dir, 'bot_service.log')
-logger = logging.getLogger('MyDailyLogger')
+logger = logging.getLogger("MyStreamLogger")
 logger.setLevel(logging.DEBUG)
 
-# 创建一个 Handler，用于按天轮换日志文件
-# filename: 日志文件的完整路径
-# when='D': 表示轮换周期为天 (Day)
-# interval=1: 表示每 1 天轮换一次
-# backupCount=7: 表示最多保留 7 个备份日志文件
-# encoding='utf-8': 设置文件编码，避免中文乱码
-handler = TimedRotatingFileHandler(
-    filename=log_filename,
-    when='D',
-    interval=1,
-    backupCount=7,
-    encoding='utf-8'
-)
-# 设置此 handler 写入文件的最低日志级别
-handler.setLevel(logging.INFO)
+# 创建一个 Handler，用于将日志输出到标准输出
+# sys.stdout 代表标准输出，也可以用 sys.stderr 代表标准错误
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
-# 将 formatter 应用到 handler
 handler.setFormatter(formatter)
-# 将创建的 handler 添加到 logger
 logger.addHandler(handler)
 
 
