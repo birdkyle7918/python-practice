@@ -4,7 +4,7 @@ name: Build and Push Docker Image to Docker Hub
 # 触发工作流的事件
 on:
   push:
-    branches: [ "master" ]  # 当有代码推送到 master 分支时触发
+    branches: [ "main" ]
   workflow_dispatch:        # 允许手动触发
 
 # 定义工作流中的任务
