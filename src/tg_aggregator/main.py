@@ -22,7 +22,7 @@ from .database import SessionLocal, engine, get_db
 # 从当前应用模块导入应用配置
 from .settings import settings
 # 从当前应用模块导入 CRUD 操作、数据库模型和 Pydantic schema
-import crud, models, schemas
+from . import crud, models, schemas
 
 # ------------------- 日志配置 -----------------------------
 # 获取一个名为 "MyStreamLogger" 的日志记录器实例
