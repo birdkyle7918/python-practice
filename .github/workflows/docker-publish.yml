@@ -3,7 +3,30 @@ name: Build and Push Docker Image to Docker Hub
 
 # 触发工作流的事件
 on:
+  # 允许手动触发
   workflow_dispatch:
+    # 定义手动触发时可以传入的参数
+    inputs:
+      # 开关一：是否构建 whore_app
+      build_whore_app:
+        description: 'Build and push whore_app'
+        required: true
+        type: boolean
+        default: true # 默认勾选
+
+      # 开关二：是否构建 tg_bot
+      build_tg_bot:
+        description: 'Build and push tg_bot'
+        required: true
+        type: boolean
+        default: true # 默认勾选
+
+      # 开关三：是否构建 tg_aggregator
+      build_tg_aggregator:
+        description: 'Build and push tg_aggregator'
+        required: true
+        type: boolean
+        default: true # 默认勾选
 
 # 定义工作流中的任务
 jobs:
@@ -31,30 +54,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 第四步：构建并推送到 Docker Hub
-      # 使用官方的 docker/build-push-action@v6
-      - name: Build and push Docker image
+      # 第四步：构建并推送 whore_app 镜像 (!!! 有条件执行)
+      # 只有当 build_whore_app 开关被勾选时，这个步骤才会运行
+      - name: Build and push whore_app
+        if: github.event.inputs.build_whore_app == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: .  # 使用当前目录作为构建上下文
-          file: ./Dockerfile_whore_app  # !!! 重要：指定你的 Dockerfile 文件名
-          push: true  # 设置为 true，表示要推送到仓库
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:latest, ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:${{ github.sha }} # !!! 重要：设置镜像标签
+          context: .
+          file: ./Dockerfile_whore_app
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:latest, ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:${{ github.sha }}
 
-      # 再推送另一个镜像 tg_bot
-      - name: Build and push Docker image
+      # 第五步：构建并推送 tg_bot 镜像 (!!! 有条件执行)
+      # 只有当 build_tg_bot 开关被勾选时，这个步骤才会运行
+      - name: Build and push tg_bot
+        if: github.event.inputs.build_tg_bot == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: .  # 使用当前目录作为构建上下文
+          context: .
           file: ./Dockerfile_tg_bot
-          push: true  # 设置为 true，表示要推送到仓库
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:${{ github.sha }} # !!! 重要：设置镜像标签
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:${{ github.sha }}
 
-      # 再推送另一个镜像 tg_aggregator
-      - name: Build and push Docker image
+      # 第六步：构建并推送 tg_aggregator 镜像 (!!! 有条件执行)
+      # 只有当 build_tg_aggregator 开关被勾选时，这个步骤才会运行
+      - name: Build and push tg_aggregator
+        if: github.event.inputs.build_tg_aggregator == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: .  # 使用当前目录作为构建上下文
+          context: .
           file: ./Dockerfile_tg_aggregator
-          push: true  # 设置为 true，表示要推送到仓库
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:${{ github.sha }} # !!! 重要：设置镜像标签
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:${{ github.sha }}
