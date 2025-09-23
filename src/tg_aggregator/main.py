@@ -148,7 +148,7 @@ async def aggregate_messages():
                     logger.info(f"已成功转发来自 '{channel_display_name}' 的消息。")
                     
                     # 等待2秒，防止请求过于频繁
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1)
 
                     # 更新数据库，记录最新处理的消息ID
                     crud.update_last_processed_id(db, channel_id=channel_in_db.id, message_id=temp_message.id)
