@@ -1,7 +1,7 @@
 from telethon.sessions import StringSession
 from telethon.sync import TelegramClient
 
-from .settings import settings
+from settings import settings
 
 
 
