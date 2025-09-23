@@ -43,7 +43,7 @@ jobs:
           push: true  # 设置为 true，表示要推送到仓库
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:latest, ${{ secrets.DOCKERHUB_USERNAME }}/whore_app:${{ github.sha }} # !!! 重要：设置镜像标签
 
-      # 第五步：再推送另一个镜像
+      # 再推送另一个镜像 tg_bot
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -51,3 +51,12 @@ jobs:
           file: ./Dockerfile_tg_bot
           push: true  # 设置为 true，表示要推送到仓库
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_bot:${{ github.sha }} # !!! 重要：设置镜像标签
+
+      # 再推送另一个镜像 tg_aggregator
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .  # 使用当前目录作为构建上下文
+          file: ./Dockerfile_tg_aggregator
+          push: true  # 设置为 true，表示要推送到仓库
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:latest, ${{ secrets.DOCKERHUB_USERNAME }}/tg_aggregator:${{ github.sha }} # !!! 重要：设置镜像标签
