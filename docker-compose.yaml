@@ -1,7 +1,5 @@
 # docker-compose.yml
 
-# 指定 docker-compose 文件版本
-version: '3.8'
 
 # 定义服务
 services:
