@@ -17,12 +17,12 @@ from telethon import TelegramClient
 # Telethon 可能抛出的特定异常
 from telethon.errors import ChannelPrivateError, ChannelInvalidError
 
-# 从当前应用模块导入 CRUD 操作、数据库模型和 Pydantic schema
-from . import crud, models, schemas
 # 从当前应用模块导入数据库会话、引擎和依赖注入函数
-from .database import SessionLocal, engine, get_db
+from database import SessionLocal, engine, get_db
 # 从当前应用模块导入应用配置
-from .settings import settings
+from settings import settings
+# 从当前应用模块导入 CRUD 操作、数据库模型和 Pydantic schema
+import crud, models, schemas
 
 # ------------------- 日志配置 -----------------------------
 # 获取一个名为 "MyStreamLogger" 的日志记录器实例
