@@ -78,7 +78,7 @@ def process_message_text(original_text: str, channel_name: str, channel_id: str,
         return ""  # 如果原始消息为空，则返回空字符串
 
     # 在原始消息末尾追加来源信息
-    processed_text = f"{original_text}\n\n---\n来自频道: `{channel_name} {channel_id}`"
+    processed_text = f"{original_text}\n\n---\n来自频道: `{channel_name} {channel_id}`\n\n---\n#{tag}"
     return processed_text
 
 
