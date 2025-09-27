@@ -10,6 +10,7 @@ class ChannelBase(BaseModel):
     channel_name: Optional[str] = None
     is_active: bool = True
     notes: Optional[str] = None
+    tag: Optional[str] = None
 
 # 创建频道时使用的模型 (输入)
 class ChannelCreate(ChannelBase):
@@ -21,6 +22,7 @@ class ChannelUpdate(BaseModel):
     channel_name: Optional[str] = None
     is_active: Optional[bool] = None
     notes: Optional[str] = None
+    tag: Optional[str] = None
 
 # 从数据库读取并返回给客户端的模型 (输出)
 class Channel(ChannelBase):
@@ -28,6 +30,7 @@ class Channel(ChannelBase):
     last_processed_message_id: int
     gmt_create: datetime
     gmt_modified: datetime
+    tag: Optional[str] = None
 
     class Config:
         from_attributes = True # 兼容ORM模式

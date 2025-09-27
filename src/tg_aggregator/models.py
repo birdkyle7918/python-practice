@@ -14,6 +14,7 @@ class TelegramChannel(Base):
     last_processed_message_id = Column(Integer, default=0, comment="最后处理过的消息ID")
     is_active = Column(Boolean, default=True, comment="是否启用")
     notes = Column(Text, nullable=True, comment="备注信息")
+    tag = Column(String(255), nullable=True, comment="标签")
 
     # 使用数据库函数自动管理时间
     gmt_create = Column(TIMESTAMP, server_default=func.now(), comment="记录创建时间")

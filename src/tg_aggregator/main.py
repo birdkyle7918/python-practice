@@ -60,7 +60,7 @@ scheduler = AsyncIOScheduler()
 
 # ------------------- 核心业务逻辑 -------------------
 
-def process_message_text(original_text: str, channel_name: str, channel_id: str) -> str:
+def process_message_text(original_text: str, channel_name: str, channel_id: str, tag: str) -> str:
     """
     处理并格式化从源频道获取到的消息文本，准备转发。
     这是可以根据个人需求进行定制的核心函数。
@@ -69,6 +69,7 @@ def process_message_text(original_text: str, channel_name: str, channel_id: str)
         original_text (str): 从 Telegram 频道获取的原始消息内容。
         channel_name (str): 消息来源频道的名称。
         channel_id (str): 消息来源频道的标识符 (如 @username)。
+        tag (str): 群组的标签
 
     Returns:
         str: 经过处理和格式化后的、准备发送到目标频道的文本。
@@ -116,7 +117,16 @@ async def aggregate_messages():
 
         # 遍历每个活跃的频道
         for channel_in_db in active_channels:
-            channel_display_name = channel_in_db.channel_name or channel_in_db.channel_identifier
+
+            # 群组id
+            channel_identifier = channel_in_db.channel_identifier
+
+            # 群组展示名
+            channel_display_name = channel_in_db.channel_name
+
+            # 群组标签
+            channel_tag = channel_in_db.tag
+
             logger.info(f"正在处理频道: {channel_display_name}")
             try:
                 # 获取频道的实体对象，这是与 Telethon 交互所必需的
@@ -140,7 +150,7 @@ async def aggregate_messages():
                         continue
 
                     # 如果有新消息，则处理并转发
-                    forward_text = process_message_text(temp_message.message, channel_display_name, channel_in_db.channel_identifier)
+                    forward_text = process_message_text(temp_message.message, channel_display_name, channel_identifier, channel_tag)
                     logger.info(f"准备从 '{channel_display_name}' 转发新消息。")
                     
                     # 发送到目标频道
