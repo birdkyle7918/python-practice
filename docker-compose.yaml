@@ -62,6 +62,10 @@ services:
     env_file:
       - .env
 
+    # 端口映射
+    ports:
+      - "8849:8849"
+
     # extra_hosts: 这是为了确保 host.docker.internal 能够被正确解析
     # 它会将 host.docker.internal 指向宿主机的 IP 地址
     extra_hosts:
